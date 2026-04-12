@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A experiência definitiva em barbearia. Estilo, conforto e precisão.">
+    <title>ELITE | Barber Shop & Grooming</title>
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Outfit:wght@200;400;600;800&display=swap" rel="stylesheet">
+    <!-- Styling -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-shell">
+        <div id="app" class="glass-container">
+            <!-- Home -->
+            <section id="home" class="view active">
+                <header class="home-hero">
+                    <div class="hero-logo-container">
+                        <img src="/home/oem/.gemini/antigravity/brain/48d9dee4-7ddd-4fb3-af3f-32e917d16036/barber_elite_logo_1775943108340.png" alt="Barbearia Elite Logo" class="main-logo">
+                    </div>
+                    <div class="hero-text">
+                        <span class="eyebrow">EST. 2024</span>
+                        <h1>ELITE <span>Collective</span></h1>
+                        <p>Redefinindo o conceito de barbearia clássica com um toque de modernidade e precisão.</p>
+                    </div>
+                </header>
+                
+                <div class="hero-stats-luxury">
+                    <div class="l-stat">
+                        <span class="val">4.9</span>
+                        <span class="lab">Avaliação</span>
+                    </div>
+                    <div class="l-stat">
+                        <span class="val">10y</span>
+                        <span class="lab">Experiência</span>
+                    </div>
+                    <div class="l-stat">
+                        <span class="val">2k+</span>
+                        <span class="lab">Clientes</span>
+                    </div>
+                </div>
+
+                <div class="home-actions-luxury">
+                    <button id="btn-goto-booking" class="btn-primary-luxury">
+                        <span>AGENDAR AGORA</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button id="btn-goto-queue" class="btn-outline-luxury">
+                        <span>FILA DIGITAL</span>
+                    </button>
+                </div>
+
+                <div class="secondary-actions-luxury">
+                    <button id="btn-goto-my-bookings" class="btn-sec-lux">
+                        <i class="far fa-calendar-check"></i>
+                        <span>MEUS HORÁRIOS</span>
+                    </button>
+                    <button id="btn-goto-dashboard" class="btn-sec-lux admin-trigger">
+                        <i class="fas fa-fingerprint"></i>
+                        <span>RESTRITO</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Agendamento -->
+            <section id="booking" class="view">
+                <nav class="luxury-nav">
+                    <button class="btn-back-luxury"><i class="fas fa-long-arrow-alt-left"></i></button>
+                    <div class="nav-title">MEMBROS <span>Agendamento</span></div>
+                </nav>
+
+                <form id="form-booking" class="luxury-form">
+                    <div class="scroll-wrapper">
+                        <div class="luxury-field-group" style="--delay: 0.1s">
+                            <h3 class="group-title">DADOS PESSOAIS</h3>
+                            <div class="input-luxury-wrapper">
+                                <i class="far fa-user"></i>
+                                <input type="text" id="name" required placeholder="Seu nome completo">
+                            </div>
+                            <div class="input-luxury-wrapper">
+                                <i class="fab fa-whatsapp"></i>
+                                <input type="tel" id="phone" required placeholder="WhatsApp (00) 00000-0000">
+                            </div>
+                        </div>
+
+                        <div class="luxury-field-group" style="--delay: 0.2s">
+                            <h3 class="group-title">SERVIÇOS EXCLUSIVOS</h3>
+                            <div id="service-options" class="luxury-service-grid"></div>
+                        </div>
+
+                        <div class="luxury-field-group" style="--delay: 0.3s">
+                            <h3 class="group-title">DISPONIBILIDADE</h3>
+                            <div class="date-selector-wrapper" style="margin-bottom: 20px;">
+                                <i class="far fa-calendar"></i>
+                                <input type="date" id="booking-date" class="luxury-date-input">
+                            </div>
+                            <div id="time-grid" class="luxury-time-grid"></div>
+                            <input type="hidden" id="selected-time" required>
+                        </div>
+
+                        <div class="luxury-field-group" style="--delay: 0.4s">
+                            <h3 class="group-title">NOTAS ADICIONAIS</h3>
+                            <textarea id="note" placeholder="Alguma preferência especial?"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="luxury-sticky-footer">
+                        <button type="submit" class="btn-confirm-luxury">
+                            RESERVAR HORÁRIO <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Login Master -->
+            <section id="login" class="view">
+                <nav class="luxury-nav">
+                    <button class="btn-back-luxury"><i class="fas fa-long-arrow-alt-left"></i></button>
+                    <div class="nav-title">SEGURANÇA <span>Identificação</span></div>
+                </nav>
+                <div class="login-container">
+                    <p class="login-hint">Identifique-se para acessar o painel de controle.</p>
+                    <form id="form-login" class="luxury-form">
+                        <div class="input-luxury-wrapper">
+                            <i class="fas fa-key"></i>
+                            <input type="password" id="admin-pass" placeholder="Código de Acesso" required>
+                        </div>
+                        <button type="submit" class="btn-primary-luxury">ENTRAR</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Dash Admin -->
+            <section id="dashboard" class="view">
+                <nav class="luxury-nav">
+                    <button class="btn-back-luxury"><i class="fas fa-long-arrow-alt-left"></i></button>
+                    <div class="nav-title">GESTÃO <span>Painel</span></div>
+                </nav>
+
+                <div class="admin-executive-summary">
+                    <div class="summary-card">
+                        <small>AGENDAMENTOS</small>
+                        <span id="sum-total">0</span>
+                    </div>
+                    <div class="summary-card">
+                        <small>RECEITA DIA</small>
+                        <span id="sum-revenue">R$ 0</span>
+                    </div>
+                    <div class="summary-card">
+                        <small>NA FILA</small>
+                        <span id="sum-queue">0</span>
+                    </div>
+                </div>
+
+                <div class="pro-tabs">
+                    <button class="pro-tab-btn active" data-target="admin-agenda">AGENDA</button>
+                    <button class="pro-tab-btn" data-target="admin-services">SERVIÇOS</button>
+                    <button class="pro-tab-btn" data-target="admin-config">CONFIG</button>
+                </div>
+
+                <div id="admin-agenda" class="dash-content">
+                    <div class="agenda-header-luxury">
+                        <h3>Compromissos</h3>
+                        <div class="date-selector-wrapper">
+                            <i class="far fa-calendar"></i>
+                            <input type="date" id="admin-date-picker" class="luxury-date-input">
+                        </div>
+                    </div>
+                    <div id="daily-appointments-list" class="luxury-appointment-list"></div>
+                </div>
+
+                <div id="admin-services" class="dash-content hidden">
+                    <div class="admin-section-header">
+                        <h3>Menu de Serviços</h3>
+                        <p>Adicione ou remova os serviços oferecidos.</p>
+                    </div>
+                    <form id="form-manage-service" class="luxury-mini-form">
+                        <div class="input-luxury-wrapper no-border">
+                            <input type="text" id="s-name" placeholder="Nome do Serviço" required>
+                        </div>
+                        <div class="input-row-luxury">
+                            <div class="input-luxury-wrapper no-border">
+                                <span class="currency">R$</span>
+                                <input type="number" id="s-price" placeholder="0,00" required>
+                            </div>
+                            <button type="submit" class="btn-add-luxury">ADICIONAR</button>
+                        </div>
+                    </form>
+                    <div id="services-manage-list" class="luxury-menu-items"></div>
+                </div>
+
+                <div id="admin-config" class="dash-content hidden">
+                    <div class="admin-section-header">
+                        <h3>Configuração do Local</h3>
+                        <p>Defina horários e dias de atendimento.</p>
+                    </div>
+                    <div class="luxury-config-card">
+                        <div class="config-group">
+                            <h4 class="mini-label">JANELA DE ATENDIMENTO</h4>
+                            <div class="time-range-group-luxury">
+                                <div class="time-in-lux">
+                                    <span>Início</span>
+                                    <input type="time" id="store-open">
+                                </div>
+                                <div class="time-divider">ATÉ</div>
+                                <div class="time-in-lux">
+                                    <span>Término</span>
+                                    <input type="time" id="store-close">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="config-group">
+                            <h4 class="mini-label">DIAS DE FUNCIONAMENTO</h4>
+                            <div class="days-selector-luxury">
+                                <label class="day-chip"><input type="checkbox" value="1"><span>SEG</span></label>
+                                <label class="day-chip"><input type="checkbox" value="2"><span>TER</span></label>
+                                <label class="day-chip"><input type="checkbox" value="3"><span>QUA</span></label>
+                                <label class="day-chip"><input type="checkbox" value="4"><span>QUI</span></label>
+                                <label class="day-chip"><input type="checkbox" value="5"><span>SEX</span></label>
+                                <label class="day-chip"><input type="checkbox" value="6"><span>SÁB</span></label>
+                                <label class="day-chip"><input type="checkbox" value="0"><span>DOM</span></label>
+                            </div>
+                        </div>
+                        <button id="btn-save-config" class="btn-confirm-luxury" style="margin-top: 40px">
+                            ATUALIZAR CONFIGURAÇÕES
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Meus Agendamentos -->
+            <section id="user-bookings" class="view">
+                <nav class="luxury-nav">
+                    <button class="btn-back-luxury"><i class="fas fa-long-arrow-alt-left"></i></button>
+                    <div class="nav-title">SUAS <span>Sessões</span></div>
+                </nav>
+                <div id="user-booking-list" class="luxury-appointment-list"></div>
+            </section>
+
+            <!-- Fila -->
+            <section id="queue" class="view">
+                <nav class="luxury-nav">
+                    <button class="btn-back-luxury"><i class="fas fa-long-arrow-alt-left"></i></button>
+                    <div class="nav-title">FILA <span>Digital</span></div>
+                </nav>
+                <div id="queue-status" class="luxury-queue-card hidden">
+                    <div class="luxury-pulse-ring">
+                        <div class="ring-core">
+                            <span id="queue-pos">0</span>
+                            <small>NA FILA</small>
+                        </div>
+                    </div>
+                    <div class="luxury-time-counter">
+                        <i class="far fa-clock"></i>
+                        <span id="queue-time">0</span> min estimados
+                    </div>
+                    <p class="queue-status-tip">Fique atento, te chamaremos em breve via WhatsApp.</p>
+                </div>
+
+                <div id="queue-join" class="luxury-form">
+                    <div class="info-banner">
+                        <i class="fas fa-bolt"></i>
+                        <span>A fila digital é para quem quer cortar agora, por ordem de chegada.</span>
+                    </div>
+                    <form id="form-queue">
+                        <div class="input-luxury-wrapper">
+                            <input type="text" id="q-name" required placeholder="Seu nome">
+                        </div>
+                        <div class="input-luxury-wrapper">
+                            <input type="tel" id="q-phone" required placeholder="Seu WhatsApp">
+                        </div>
+                        <button type="submit" class="btn-primary-luxury">SOLICITAR LUGAR</button>
+                    </form>
+                </div>
+
+                <div class="luxury-lineup">
+                    <h3 class="group-title">QUEM ESTÁ NO AGUARDO</h3>
+                    <div id="queue-list" class="lineup-list">
+                        <!-- JS Injected List -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Feedback -->
+            <div id="toast" class="toast"></div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
