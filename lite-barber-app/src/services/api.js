@@ -24,6 +24,14 @@ api.interceptors.response.use(
       localStorage.removeItem('sanctum_token')
     }
 
+    const responseData = error.response?.data
+
+    error.normalized = {
+      status: error.response?.status || 0,
+      message: responseData?.message || 'Não foi possível concluir a operação.',
+      errors: responseData?.errors || {},
+    }
+
     return Promise.reject(error)
   },
 )

@@ -100,3 +100,28 @@ php artisan test
 ## Endpoints
 
 Os endpoints REST estão definidos em `routes/api.php`.
+
+## Contrato de respostas
+
+Erros da API são retornados em JSON:
+
+```json
+{
+  "success": false,
+  "message": "Descrição do erro"
+}
+```
+
+Erros de validação usam HTTP `422` e incluem `errors`:
+
+```json
+{
+  "success": false,
+  "message": "Os dados enviados são inválidos.",
+  "errors": {
+    "email": ["The email field is required."]
+  }
+}
+```
+
+Exemplos de status: `401` não autenticado, `404` recurso não encontrado, `409` conflito de horário e `422` dados inválidos.
