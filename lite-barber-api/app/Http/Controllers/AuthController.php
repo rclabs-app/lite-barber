@@ -20,13 +20,31 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Credenciais inválidas'], 401);
+        if (! $user || ! Hash::check($password = $request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Credenciais inválidas',
+            ], 401);
+        }
+
+        if (! $user->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuário inativo.',
+            ], 403);
+        }
+
+        if (! in_array($user->role, ['owner', 'manager'], true) || ! $user->shop_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuário sem acesso administrativo.',
+            ], 403);
         }
 
         return response()->json([
+            'success' => true,
             'token' => $user->createToken('admin_panel')->plainTextToken,
-            'user' => $user
+            'user' => $user,
         ]);
     }
 
@@ -41,7 +59,7 @@ class AuthController extends Controller
             'slug' => 'required|string|max:100|unique:shops,slug',
             'admin_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6'
+            'password' => 'required|string|min:6|confirmed'
         ]);
 
         try {
@@ -66,6 +84,7 @@ class AuthController extends Controller
             DB::commit();
 
             return response()->json([
+                'success' => true,
                 'token' => $user->createToken('admin_panel')->plainTextToken,
                 'user' => $user,
                 'shop' => $shop
@@ -73,13 +92,17 @@ class AuthController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Erro ao registrar', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao registrar estabelecimento.',
+            ], 500);
         }
     }
 
     public function me(Request $request) 
     {
-        return response()->json($request->user());
+        $user = $request->user()->loadMissing('shop');
+        return response()->json($user);
     }
 
     public function updateProfile(Request $request)
@@ -109,7 +132,11 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Deslogado com sucesso']);
+        $request->user()->tokens()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Deslogado com sucesso',
+        ]);
     }
 }

@@ -1,10 +1,13 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import axios from '../services/api'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import { Toast } from '../utils/swal'
 
+const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
+
 const email = ref('admin@eliteagenda.com')
 const password = ref('')
 const showPassword = ref(false)
@@ -13,13 +16,14 @@ const goBack = () => router.push('/')
 
 const handleLogin = async () => {
     try {
-        const payload = { email: email.value, password: password.value }
-        const { data } = await axios.post('/api/auth/login', payload)
-        localStorage.setItem('sanctum_token', data.token)
-        axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
-        router.push('/admin')
+        await auth.login(email.value, password.value)
+        const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/admin'
+        await router.replace(redirect)
     } catch(err) {
-        Toast.fire({ icon: 'error', title: 'Credenciais Inválidas' })
+        Toast.fire({
+            icon: 'error',
+            title: err.normalized?.message || 'Credenciais inválidas'
+        })
     }
 }
 </script>

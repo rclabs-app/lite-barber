@@ -31,4 +31,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function shop()
+    {
+        return $this->belongsTo(Shop::class);
+    }
 }

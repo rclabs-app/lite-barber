@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from '../services/api'
 import { Toast } from '../utils/swal'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const auth = useAuthStore()
 const form = ref({
   shop_name: '',
   slug: '',
@@ -43,16 +44,13 @@ const register = async () => {
 
   loading.value = true
   try {
-    const response = await axios.post('/api/auth/register', form.value)
-    localStorage.setItem('sanctum_token', response.data.token)
-    localStorage.setItem('user_name', response.data.user.name)
-    localStorage.setItem('shop_name', response.data.shop.name)
-    
+    await auth.register(form.value)
+
     Toast.fire({ icon: 'success', title: 'Estabelecimento criado com sucesso!' })
-    router.push('/admin')
+    await router.replace('/admin')
   } catch (error) {
     console.error(error)
-    const msg = error.response?.data?.message || 'Erro ao registrar estabelecimento.'
+    const msg = error.normalized?.message || 'Erro ao registrar estabelecimento.'
     Toast.fire({ icon: 'error', title: msg })
   } finally {
     loading.value = false

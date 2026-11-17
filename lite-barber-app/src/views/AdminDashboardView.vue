@@ -3,8 +3,10 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '../services/api'
 import { LuxurySwal, Toast } from '../utils/swal'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const auth = useAuthStore()
 const activeTab = ref('dashboard')
 const sidebarOpen = ref(false)
 const appointments = ref([])
@@ -352,8 +354,8 @@ const fetchUserProfile = async () => {
 }
 
 const logout = async () => {
-  try { await axios.post('/api/auth/logout') } catch(e) {}
-  localStorage.removeItem('sanctum_token'); delete axios.defaults.headers.common['Authorization']; router.push('/')
+  await auth.logout()
+  await router.replace('/')
 }
 
 const navigate = (key) => { if (key === 'relatorios') return; activeTab.value = key; sidebarOpen.value = false }
@@ -366,11 +368,14 @@ const greetingText = computed(() => {
 })
 
 onMounted(() => {
-  const token = localStorage.getItem('sanctum_token')
-  if (!token) { router.push('/login'); return }
-  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-  const u = localStorage.getItem('user_name'); if (u) userName.value = u
-  fetchUserProfile(); fetchAgenda(); fetchWaitlist(); fetchServices(); fetchProfessionals(); fetchShopConfig()
+  const u = localStorage.getItem('user_name')
+  if (u) userName.value = u
+  fetchUserProfile()
+  fetchAgenda()
+  fetchWaitlist()
+  fetchServices()
+  fetchProfessionals()
+  fetchShopConfig()
 })
 </script>
 
@@ -1053,7 +1058,7 @@ onMounted(() => {
 .agenda-skeleton { display: flex; flex-direction: column; gap: 12px; }
 .skeleton-group-date { height: 36px; background: #1a1a1a; border-radius: 6px; width: 300px; animation: skeleton-pulse 1.5s ease infinite; margin-bottom: 4px; }
 .skeleton-card { background: #111; border: 1px solid #1e1e1e; border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; }
-.skeleton-time { width: 48px; height: 36px; background: #1e1e1e; border-radius: 6px; animation: skeleton-pulse 1.5s ease infinite; flex-shrink: 0; }
+.skeleton-time { width: 48px; height:  36px; background: #1e1e1e; border-radius: 6px; animation: skeleton-pulse 1.5s ease infinite; flex-shrink: 0; }
 .skeleton-info { flex: 1; display: flex; flex-direction: column; gap: 8px; }
 .skeleton-line { background: #1e1e1e; border-radius: 4px; animation: skeleton-pulse 1.5s ease infinite; }
 .skeleton-name { height: 14px; width: 60%; }
