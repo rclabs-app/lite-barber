@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import axios from '../services/api'
 import { Toast } from '../utils/swal'
 
 const router = useRouter()

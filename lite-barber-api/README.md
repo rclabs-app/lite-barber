@@ -56,3 +56,47 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+# Lite Barber API
+
+API Laravel responsável por autenticação, tenants, agendamentos, serviços, profissionais e fila.
+
+## Requisitos
+
+- PHP 8.3+
+- Composer
+- SQLite para desenvolvimento ou MySQL para produção
+
+## Configuração local
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve --host=127.0.0.1 --port=8000
+```
+
+Se estiver usando SQLite, mantenha `DB_CONNECTION=sqlite` e crie o arquivo:
+
+```bash
+touch database/database.sqlite
+```
+
+No ambiente local, o frontend usa o proxy do Vite para acessar `http://127.0.0.1:8000`.
+Para chamadas diretas, configure no `.env`:
+
+```dotenv
+APP_URL=http://127.0.0.1:8000
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+## Testes
+
+```bash
+php artisan test
+```
+
+## Endpoints
+
+Os endpoints REST estão definidos em `routes/api.php`.

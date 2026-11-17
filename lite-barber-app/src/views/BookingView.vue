@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import axios from '../services/api'
 import { LuxurySwal, Toast } from '../utils/swal'
 
 const router = useRouter()
