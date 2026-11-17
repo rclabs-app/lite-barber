@@ -15,12 +15,29 @@ class SetTenantContext
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() && $request->user()->shop_id) {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->is_active) {
+            return response()->json(['success' => false, 'message' => 'Usuário inativo.'], 403);
+        }
+
+        if (! in_array($user->role, ['owner', 'manager'], true)) {
+            return response()->json(['success' => false, 'message' => 'Usuário sem acesso administrativo.'], 403);
+        }
+
+        if ($user->shop_id) {
             // Injeta silenciosamente no lifecycle do Laravel quem é a barbearia Dona da requisição
-            app()->instance('tenant.shop_id', $request->user()->shop_id);
-            $request->merge(['shop_id' => $request->user()->shop_id]);
+            app()->instance('tenant.shop_id', $user->shop_id);
+            $request->merge(['shop_id' => $user->shop_id]);
         } else {
-            return response()->json(['message' => 'Segurança Ativa: Usuário sem uma barbearia atrelada.'], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuário sem uma barbearia vinculada.',
+            ], 403);
         }
 
         return $next($request);
