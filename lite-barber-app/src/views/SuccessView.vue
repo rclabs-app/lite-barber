@@ -17,7 +17,7 @@ const formattedDate = computed(() => {
     return `${parts[2]}/${parts[1]}/${parts[0]}`
 })
 
-const goHome = () => router.push('/')
+const goHome = () => router.push({ name: 'shop', params: { slug: route.params.slug } })
 </script>
 
 <template>

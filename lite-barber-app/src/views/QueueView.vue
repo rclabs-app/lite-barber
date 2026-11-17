@@ -3,9 +3,12 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '../services/api'
 import { Toast } from '../utils/swal'
+import { usePublicShop } from '../composables/usePublicShop'
 
 const router = useRouter()
-const goBack = () => router.push('/')
+const { slug, loadShop } = usePublicShop()
+
+const goBack = () => router.push({ name: 'shop', params: { slug: slug.value } })
 
 const queueCount = ref(0)
 const names = ref([])
@@ -23,33 +26,13 @@ const applyPhoneMask = (e) => {
 
 const fetchWaitlistStatus = async () => {
     try {
-        const { data } = await axios.get('/api/shops/elite-agenda/waitlist')
+        const { data } = await axios.get(`/api/shops/${encodeURIComponent(slug.value)}/waitlist`)
         queueCount.value = data.waiting_count
         names.value = data.names
-        
-        const shopRes = await axios.get('/api/shops/elite-agenda');
-        if (shopRes.data.theme_color) {
-            document.documentElement.style.setProperty('--gold', shopRes.data.theme_color);
-            document.documentElement.style.setProperty('--accent', shopRes.data.theme_color);
-        }
-        const theme = shopRes.data.theme_mode;
-        if (theme && theme.includes('light')) {
-            document.body.classList.add('light-theme');
-            document.documentElement.classList.add('light-theme');
-            if (theme === 'light-wine') {
-                document.body.classList.add('theme-wine');
-                document.documentElement.classList.add('theme-wine');
-                document.body.classList.remove('theme-nude');
-                document.documentElement.classList.remove('theme-nude');
-            } else {
-                document.body.classList.add('theme-nude');
-                document.documentElement.classList.add('theme-nude');
-                document.body.classList.remove('theme-wine');
-                document.documentElement.classList.remove('theme-wine');
-            }
-        } else {
-            document.body.classList.remove('light-theme', 'theme-nude', 'theme-wine');
-            document.documentElement.classList.remove('light-theme', 'theme-nude', 'theme-wine');
+
+        if (data.theme_color) {
+            document.documentElement.style.setProperty('--gold', data.theme_color)
+            document.documentElement.style.setProperty('--accent', data.theme_color)
         }
     } catch(err) {
         console.error(err)
@@ -58,13 +41,14 @@ const fetchWaitlistStatus = async () => {
 
 const joinQueue = async () => {
     try {
-        const { data } = await axios.post('/api/shops/elite-agenda/waitlist', {
+        const { data } = await axios.post(`/api/shops/${encodeURIComponent(slug.value)}/waitlist`, {
             customer_name: name.value,
             customer_phone: phone.value
         })
         
         router.push({
             name: 'success',
+            params: { slug: slug.value },
             query: {
                 type: 'waitlist',
                 name: name.value,
@@ -79,7 +63,8 @@ const joinQueue = async () => {
     }
 }
 
-onMounted(() => {
+onMounted(async () => {
+    await loadShop()
     fetchWaitlistStatus()
     // Atualiza status localmente a cada 10 segundos
     setInterval(fetchWaitlistStatus, 10000)

@@ -1,49 +1,16 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import axios from '../services/api'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { usePublicShop } from '../composables/usePublicShop'
 
 const router = useRouter()
-const shop = ref(null)
-const loading = ref(true)
+const { shop, loading, slug, loadShop } = usePublicShop()
 
-onMounted(async () => {
-    try {
-        const response = await axios.get('/api/shops/elite-agenda');
-        shop.value = response.data;
-        if (shop.value.theme_color) {
-            document.documentElement.style.setProperty('--gold', shop.value.theme_color);
-            document.documentElement.style.setProperty('--accent', shop.value.theme_color);
-        }
-        const theme = shop.value.theme_mode;
-        if (theme && theme.includes('light')) {
-            document.body.classList.add('light-theme');
-            document.documentElement.classList.add('light-theme');
-            if (theme === 'light-wine') {
-                document.body.classList.add('theme-wine');
-                document.documentElement.classList.add('theme-wine');
-                document.body.classList.remove('theme-nude');
-                document.documentElement.classList.remove('theme-nude');
-            } else {
-                document.body.classList.add('theme-nude');
-                document.documentElement.classList.add('theme-nude');
-                document.body.classList.remove('theme-wine');
-                document.documentElement.classList.remove('theme-wine');
-            }
-        } else {
-            document.body.classList.remove('light-theme', 'theme-nude', 'theme-wine');
-            document.documentElement.classList.remove('light-theme', 'theme-nude', 'theme-wine');
-        }
-    } catch(err) {
-        console.error(err);
-    } finally {
-        loading.value = false;
-    }
-})
+onMounted(loadShop)
 
-const goBooking = () => router.push('/booking')
-const goQueue = () => router.push('/queue')
-const goAdmin = () => router.push('/login')
+const goBooking = () => router.push({ name: 'booking', params: { slug: slug.value } })
+const goQueue = () => router.push({ name: 'queue', params: { slug: slug.value } })
+const goAdmin = () => router.push({ name: 'login' })
 </script>
 
 <template>

@@ -7,16 +7,6 @@ const router = createRouter({
   },
   routes: [
     {
-      path: '/',
-      name: 'shop',
-      component: () => import('../views/ShopView.vue')
-    },
-    {
-      path: '/booking',
-      name: 'booking',
-      component: () => import('../views/BookingView.vue')
-    },
-    {
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue')
@@ -27,19 +17,34 @@ const router = createRouter({
       component: () => import('../views/RegisterView.vue')
     },
     {
-      path: '/queue',
-      name: 'queue',
-      component: () => import('../views/QueueView.vue')
-    },
-    {
       path: '/admin',
       name: 'admin',
       component: () => import('../views/AdminDashboardView.vue')
     },
     {
-      path: '/success',
+      path: '/:slug/booking',
+      name: 'booking',
+      component: () => import('../views/BookingView.vue')
+    },
+    {
+      path: '/:slug/queue',
+      name: 'queue',
+      component: () => import('../views/QueueView.vue')
+    },
+    {
+      path: '/:slug/success',
       name: 'success',
       component: () => import('../views/SuccessView.vue')
+    },
+    {
+      path: '/:slug/not-found',
+      name: 'shop-not-found',
+      component: () => import('../views/ShopNotFoundView.vue')
+    },
+    {
+      path: '/:slug?',
+      name: 'shop',
+      component: () => import('../views/ShopView.vue')
     }
   ]
 })

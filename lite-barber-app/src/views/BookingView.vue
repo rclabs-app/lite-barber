@@ -2,15 +2,17 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '../services/api'
+import { usePublicShop } from '../composables/usePublicShop'
 import { LuxurySwal, Toast } from '../utils/swal'
 
 const router = useRouter()
+const { shop, slug, loadShop } = usePublicShop()
 
 // Refs do Flow
 const services = ref([])
 const professionals = ref([])
 const availableSlots = ref([]) 
-const shop = ref(null)
+// const shop = ref(null)
 
 // Model do Form
 const name = ref('')
@@ -86,7 +88,7 @@ const fetchAvailableSlots = async () => {
     loadingSlots.value = true
     
     try {
-        const { data: busySlots } = await axios.get(`/api/shops/elite-agenda/appointments/busy`, {
+        const { data: busySlots } = await axios.get(`/api/shops/${encodeURIComponent(slug.value)}/appointments/busy`, {
             params: { 
                 date: selectedDate.value,
                 professional_id: selectedProfessionalId.value
@@ -208,14 +210,14 @@ const applyPhoneMask = (e) => {
 }
 
 onMounted(async () => {
+    await loadShop()
     try {
-        const [sData, shopData, bData] = await Promise.all([
-            axios.get('/api/shops/elite-agenda/services'),
-            axios.get('/api/shops/elite-agenda'),
-            axios.get('/api/shops/elite-agenda/professionals')
+        const [sData, bData] = await Promise.all([
+            axios.get(`/api/shops/${encodeURIComponent(slug.value)}/services`),
+            axios.get(`/api/shops/${encodeURIComponent(slug.value)}/professionals`)
         ])
         services.value = sData.data
-        shop.value = shopData.data
+        professionals.value = bData.data
         if (shop.value.theme_color) {
             document.documentElement.style.setProperty('--gold', shop.value.theme_color);
             document.documentElement.style.setProperty('--accent', shop.value.theme_color);
@@ -239,7 +241,6 @@ onMounted(async () => {
             document.body.classList.remove('light-theme', 'theme-nude', 'theme-wine');
             document.documentElement.classList.remove('light-theme', 'theme-nude', 'theme-wine');
         }
-        professionals.value = bData.data
 
         // Auto-select professional if only one exists
         if (professionals.value.length === 1) {
@@ -253,7 +254,7 @@ onMounted(async () => {
     }
 })
 
-const goBack = () => router.push('/')
+const goBack = () => router.push({ name: 'shop', params: { slug: slug.value } })
 
 const confirmBooking = async () => {
     if (!selectedServiceId.value || !selectedProfessionalId.value || !selectedTime.value) {
@@ -266,7 +267,7 @@ const confirmBooking = async () => {
     }
 
     try {
-        await axios.post('/api/shops/elite-agenda/appointments', {
+        await axios.post(`/api/shops/${encodeURIComponent(slug.value)}/appointments`, {
             service_id: selectedServiceId.value,
             professional_id: selectedProfessionalId.value,
             customer_name: name.value,
@@ -277,6 +278,7 @@ const confirmBooking = async () => {
         
         router.push({
             name: 'success',
+            params: { slug: slug.value },
             query: {
                 type: 'appointment',
                 name: name.value,
