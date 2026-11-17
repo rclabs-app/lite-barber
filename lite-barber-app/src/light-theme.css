@@ -1,0 +1,526 @@
+/* LIGHT THEME (CLEAN / AESTHETICS) */
+html.light-theme, body.light-theme {
+    --black: #ffffff;
+    --near-black: #fdfdfd;
+    --gray-dark: #f0f0f0;
+    --gray-med: #e0e0e0;
+    --gray-light: #333333;
+    --text-main: #2d3436;
+    --text-dim: #636e72;
+    color: var(--text-main) !important;
+}
+
+html.theme-nude, body.theme-nude {
+    --accent: #dca392 !important; /* Nude Sofisticado / Rosé Mudo */
+    background: #fdfcfb !important; /* Nude muito suave */
+}
+
+html.theme-wine, body.theme-wine {
+    --accent: #722F37 !important; /* Vinho / Bordeaux */
+    background: #fdfafb !important; /* Branco levemente rosado */
+}
+
+body.light-theme .app-shell,
+body.light-theme .view,
+body.light-theme .admin-content,
+body.light-theme .home-hero {
+    background: transparent !important;
+    color: var(--text-main) !important;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+
+body.light-theme .glass-container, 
+body.light-theme .card-content, 
+body.light-theme .luxury-mini-form, 
+body.light-theme .luxury-queue-card, 
+body.light-theme .config-section, 
+body.light-theme .date-selector-wrapper,
+body.light-theme .service-card input:not(:checked) + .card-content,
+body.light-theme .pro-agenda-item,
+body.light-theme .login-glass,
+body.light-theme .register-glass,
+body.light-theme .stat-card,
+body.light-theme .time-grid,
+body.light-theme .agenda-appt-card,
+body.light-theme .waitlist-card {
+    background: #ffffff !important;
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.06), 0 2px 10px rgba(0,0,0,0.02) !important;
+    border: none !important;
+    border-radius: 16px !important;
+    color: var(--text-main) !important;
+    transition: all 0.3s ease !important;
+}
+
+body.light-theme .service-card:hover .card-content,
+body.light-theme .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 45px -10px rgba(0,0,0,0.08), 0 5px 15px rgba(0,0,0,0.03) !important;
+}
+
+body.light-theme .pro-agenda-item {
+    border-left: 3px solid var(--gray-med) !important;
+}
+
+body.light-theme .pro-agenda-item:hover {
+    border-left-color: var(--accent) !important;
+    background: #fdfdfd !important;
+}
+
+body.light-theme h1, 
+body.light-theme h2, 
+body.light-theme h3, 
+body.light-theme h4,
+body.light-theme .home-hero h1 {
+    color: #1e293b !important;
+    font-weight: 700 !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+}
+
+body.light-theme p,
+body.light-theme span,
+body.light-theme .nav-title, 
+body.light-theme .time-box .hour,
+body.light-theme .pro-tab-btn,
+body.light-theme .service-price,
+body.light-theme .eyebrow,
+body.light-theme .queue-names div,
+body.light-theme .info-group label {
+    color: #475569 !important;
+}
+
+body.light-theme .btn-primary-luxury, 
+body.light-theme .btn-confirm-luxury,
+body.light-theme .btn-action {
+    background: var(--accent) !important; 
+    color: #fff !important;
+    border: none !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 20px -6px rgba(0,0,0, 0.25), 0 4px 8px rgba(0,0,0, 0.1) !important;
+    font-weight: 700 !important;
+    padding: 14px 24px !important;
+    letter-spacing: 0.5px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+body.light-theme .btn-primary-luxury:hover, 
+body.light-theme .btn-confirm-luxury:hover,
+body.light-theme .btn-action:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 12px 24px -8px rgba(0,0,0, 0.3), 0 6px 12px rgba(0,0,0, 0.15) !important;
+}
+
+/* Cancel / Secondary actions in Light Theme */
+body.light-theme .btn-cancel {
+    background: transparent !important;
+    color: #64748b !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+}
+body.light-theme .btn-cancel:hover {
+    background: #fee2e2 !important;
+    color: #ef4444 !important;
+    border-color: #fecaca !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+body.light-theme .btn-outline-luxury,
+body.light-theme .btn-sec-lux {
+    background: #ffffff !important;
+    color: #475569 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03) !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+}
+
+body.light-theme .btn-outline-luxury:hover,
+body.light-theme .btn-sec-lux:hover {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+}
+
+body.light-theme .input-luxury-wrapper input,
+body.light-theme .form-input,
+body.light-theme .luxury-input {
+    background: #f1f5f9 !important;
+    border: 1.5px solid transparent !important;
+    color: #1e293b !important;
+    border-radius: 12px !important;
+    padding: 14px 18px !important;
+    font-size: 1rem !important;
+    transition: all 0.3s ease !important;
+}
+
+body.light-theme .input-luxury-wrapper input:focus,
+body.light-theme .form-input:focus,
+body.light-theme .luxury-input:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 4px rgba(0,0,0, 0.05) !important;
+    background: #ffffff !important;
+}
+
+body.light-theme .input-luxury-wrapper {
+    border: none !important;
+    background: transparent !important;
+}
+
+body.light-theme .input-luxury-wrapper i {
+    color: #94a3b8 !important;
+    font-size: 1.1rem !important;
+}
+
+body.light-theme .time-slot {
+    background: #f8fafc !important;
+    border: 1.5px solid transparent !important;
+    border-radius: 10px !important;
+    color: #334155 !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+}
+
+body.light-theme .time-slot:hover {
+    background: #f1f5f9 !important;
+    transform: translateY(-1px);
+}
+
+body.light-theme .time-slot.selected {
+    background: var(--accent) !important;
+    color: #ffffff !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 6px 16px -4px rgba(0,0,0, 0.2) !important;
+    transform: translateY(-2px);
+}
+
+body.light-theme .service-card input:checked + .card-content {
+    background: var(--accent) !important;
+    color: #ffffff !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 8px 24px -6px rgba(0,0,0, 0.25) !important;
+}
+
+body.light-theme .service-card input:checked + .card-content .service-price,
+body.light-theme .service-card input:checked + .card-content h3,
+body.light-theme .service-card input:checked + .card-content p {
+    color: #fff !important;
+}
+
+body.light-theme .pro-tab-btn.active {
+    color: var(--accent) !important;
+}
+
+body.light-theme .pro-tab-btn.active::after {
+    background: var(--accent) !important;
+}
+
+body.light-theme .date-group-header {
+    background: #ffffff !important;
+    color: var(--accent) !important;
+    border-left: 4px solid var(--accent) !important;
+    border-bottom: 1px solid #e9ecef !important;
+    border-top: 1px solid #e9ecef !important;
+    box-shadow: none !important;
+}
+
+body.light-theme .luxury-nav, 
+body.light-theme .admin-sidebar, 
+body.light-theme .bottom-nav-lux {
+    background: #ffffff !important;
+    border-color: #e9ecef !important;
+    box-shadow: 0 0 15px rgba(0,0,0,0.05) !important;
+}
+
+body.light-theme .admin-sidebar {
+    border-right: 1px solid #e9ecef !important;
+}
+
+body.light-theme .bottom-nav-lux .nav-item {
+    color: var(--text-dim) !important;
+}
+
+body.light-theme .bottom-nav-lux .nav-item.active {
+    color: var(--accent) !important;
+}
+
+body.light-theme .btn-back-luxury {
+    color: var(--text-main) !important;
+}
+
+body.light-theme .dashboard-header {
+    border-bottom: 1px solid #e9ecef !important;
+}
+
+body.light-theme .stat-card h3 {
+    color: var(--text-dim) !important;
+}
+
+body.light-theme .stat-card .value {
+    color: var(--text-main) !important;
+}
+
+body.light-theme .calendar-luxury-admin {
+    border-color: #e9ecef !important;
+    background: #ffffff !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.02) !important;
+}
+
+body.light-theme .calendar-grid-lux {
+    background: #f1f5f9 !important; /* light grid lines */
+}
+
+body.light-theme .luxury-menu-item {
+    background: #ffffff !important;
+    color: var(--text-main) !important;
+    border: 1px solid #e9ecef !important;
+}
+
+body.light-theme .luxury-menu-item:hover {
+    background: #f4f7f6 !important;
+}
+
+body.light-theme .status-badge {
+    color: #fff !important;
+}
+
+body.light-theme .status-badge.confirmed { background: #2ecc71 !important; }
+body.light-theme .status-badge.pending { background: #f1c40f !important; color: #000 !important; }
+body.light-theme .status-badge.completed { background: #3498db !important; }
+body.light-theme .status-badge.canceled { background: #e74c3c !important; }
+
+body.light-theme .cal-day-cell.padding {
+    background: #f8fafc !important;
+    color: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+body.light-theme .cal-day-cell.unavailable {
+    background: #fee2e2 !important;
+    color: #ef4444 !important;
+    border-color: #fecaca !important;
+}
+
+/* Day chips */
+body.light-theme .day-chip input:checked + span {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-color: var(--accent) !important;
+}
+body.light-theme .day-chip span {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    color: #334155 !important;
+}
+
+/* ADMIN DASHBOARD FIXES */
+body.light-theme .admin-shell {
+    background: #f4f7f6 !important;
+}
+
+body.light-theme .admin-sidebar,
+body.light-theme .admin-topbar {
+    background: #ffffff !important;
+    border-color: #e9ecef !important;
+}
+
+body.light-theme .dash-panel,
+body.light-theme .form-card,
+body.light-theme .agenda-appt-card,
+body.light-theme .waitlist-card {
+    background: #ffffff !important;
+    border: 1px solid #e9ecef !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.02) !important;
+}
+
+body.light-theme .form-input,
+body.light-theme .input-prefix {
+    background: #ffffff !important;
+    border: 1px solid #ced4da !important;
+    color: var(--text-main) !important;
+}
+
+/* Colorized KPI cards for Light Theme (Tons Pastéis) */
+body.light-theme .kpi-blue { background: #e0f2fe !important; border: 1px solid #7dd3fc !important; box-shadow: none !important; }
+body.light-theme .kpi-green { background: #dcfce7 !important; border: 1px solid #86efac !important; box-shadow: none !important; }
+body.light-theme .kpi-teal { background: #fae8ff !important; border: 1px solid #f0abfc !important; box-shadow: none !important; }
+body.light-theme .kpi-purple { background: #f3e8ff !important; border: 1px solid #d8b4fe !important; box-shadow: none !important; }
+body.light-theme .kpi-orange { background: #ffedd5 !important; border: 1px solid #fdba74 !important; box-shadow: none !important; }
+body.light-theme .kpi-gold { background: #fef08a !important; border: 1px solid #fcd34d !important; box-shadow: none !important; }
+
+body.light-theme .kpi-card .kpi-label { color: var(--text-dim) !important; }
+body.light-theme .kpi-card .kpi-value { color: var(--text-main) !important; }
+
+body.light-theme .sidebar-nav-item:hover {
+    background: #f4f7f6 !important;
+    color: var(--accent) !important;
+}
+
+body.light-theme .sidebar-nav-item.active {
+    background: rgba(212, 175, 55, 0.1) !important;
+    border-right: 3px solid var(--accent) !important;
+    color: var(--accent) !important;
+}
+
+body.light-theme .plan-badge {
+    background: var(--accent) !important;
+    color: #fff !important;
+}
+
+body.light-theme .user-avatar {
+    background: #f4f7f6 !important;
+    color: var(--accent) !important;
+    border: 1px solid #e9ecef !important;
+}
+
+body.light-theme .date-filter-btn,
+body.light-theme .per-page-select,
+body.light-theme .btn-page,
+body.light-theme .btn-clear-filter {
+    background: #ffffff !important;
+    border: 1px solid #ced4da !important;
+    color: var(--text-main) !important;
+}
+
+body.light-theme .calendar-header-lux {
+    background: transparent !important;
+    color: #1e293b !important;
+    border: none !important;
+    padding: 12px 16px !important;
+}
+
+body.light-theme .cal-day-header {
+    background: transparent !important;
+    color: #64748b !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+}
+
+body.light-theme .profile-social-header {
+    background: #ffffff !important;
+    border: 1px solid #e9ecef !important;
+}
+
+body.light-theme .profile-name {
+    color: #1e293b !important;
+}
+
+body.light-theme .cal-day-cell {
+    border: none !important;
+    border-radius: 50% !important;
+    background: #ffffff !important;
+    color: #334155 !important;
+    margin: 4px !important;
+    width: 40px !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+
+body.light-theme .cal-day-cell:hover:not(.disabled) {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+body.light-theme .cal-day-cell.selected {
+    background: var(--accent) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(0,0,0, 0.25) !important;
+    transform: scale(1.05) !important;
+    font-weight: 700 !important;
+}
+
+body.light-theme .admin-topbar .hamburger,
+body.light-theme .cal-nav-btn {
+    color: var(--text-main) !important;
+}
+/* Corrige o fundo branco e borda dupla para os containers de horários e prefixos */
+body.light-theme .time-in-lux,
+body.light-theme .input-prefix {
+    background: #ffffff !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    color: var(--text-main) !important;
+}
+
+body.light-theme .time-in-lux .form-input,
+body.light-theme .input-prefix .form-input {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+
+/* General overrides for green and gold elements to fit the Nude/Wine aesthetic */
+body.light-theme .online-pill {
+    background: rgba(0, 0, 0, 0.05) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+}
+
+body.light-theme .online-dot {
+    background: var(--accent) !important;
+}
+
+body.light-theme .user-avatar {
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: var(--accent) !important;
+}
+
+body.light-theme .btn-primary {
+    background: var(--accent) !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+
+body.light-theme .btn-primary:hover {
+    filter: brightness(1.1);
+}
+
+
+/* Fix SweetAlert Toast text color in light theme */
+body.light-theme .swal2-popup.swal2-toast,
+body.light-theme .swal2-popup.swal2-toast .swal2-title,
+body.light-theme .swal2-popup.swal2-toast .swal2-html-container {
+    color: #ffffff !important;
+}
+
+/* Theme Selection Buttons Light Mode Override */
+body.light-theme .theme-select-btn {
+    border-color: #ddd;
+    color: var(--text-dim);
+}
+body.light-theme .theme-select-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-main);
+}
+body.light-theme .theme-select-btn.active {
+    background: var(--accent);
+    color: #ffffff;
+    border-color: var(--accent);
+}
+
+/* Fixes for text visibility in lists */
+body.light-theme .list-item {
+    border-bottom-color: #e2e8f0 !important;
+}
+body.light-theme .list-item-name {
+    color: var(--text-main) !important;
+}
+body.light-theme .list-item-meta {
+    color: var(--text-dim) !important;
+}
+
+/* Fixes for Booking View footer */
+body.light-theme .luxury-sticky-footer {
+    background: #ffffff !important;
+    border-top: 1px solid #e2e8f0 !important;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.03) !important;
+}

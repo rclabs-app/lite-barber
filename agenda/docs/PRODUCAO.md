@@ -32,7 +32,7 @@
 | RF02 | Cadastro e login de usuário dono (admin)                                  | Alta       |
 | RF03 | Gestão de serviços (nome, preço, duração)                                 | Alta       |
 | RF04 | Gestão de barbeiros (nome, foto, especialidades)                          | Alta       |
-| RF05 | Agendamento de horário pelo cliente (sem cadastro necessário no MVP)       | Alta       |
+| RF05 | Agendamento de horário pelo cliente (sem cadastro necessário no MVP)      | Alta       |
 | RF06 | Visualização e gestão da agenda pelo admin                                | Alta       |
 | RF07 | Entrada na fila digital pelo cliente                                      | Alta       |
 | RF08 | Painel da fila para o admin (chamada, avanço, conclusão)                  | Alta       |
@@ -64,23 +64,23 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    CLIENTE (Browser)                     │
+│                    CLIENTE (Browser)                    │
 │                Vue 3 SPA (Vite Build)                   │
-│          Vue Router | Pinia | Axios                      │
+│          Vue Router | Pinia | Axios                     │
 └──────────────────────────┬──────────────────────────────┘
                            │  HTTPS / JSON (REST API)
                            │
 ┌──────────────────────────▼──────────────────────────────┐
-│                   BACKEND (Laravel)                      │
-│              API RESTful — Laravel 11+                   │
-│   Routes → Middleware → Controller → Service → Model     │
-│                  Laravel Sanctum (Auth)                  │
-│              Laravel Queues (Jobs futuros)               │
+│                   BACKEND (Laravel)                     │
+│              API RESTful — Laravel 11+                  │
+│   Routes → Middleware → Controller → Service → Model    │
+│                  Laravel Sanctum (Auth)                 │
+│              Laravel Queues (Jobs futuros)              │
 └──────────────┬───────────────────────┬──────────────────┘
                │                       │
 ┌──────────────▼──────┐   ┌────────────▼─────────────────┐
-│   MySQL (Principal) │   │   Redis (Fila / Cache)        │
-│   Dados relacionais │   │   Opcional no MVP             │
+│   MySQL (Principal) │   │   Redis (Fila / Cache)       │
+│   Dados relacionais │   │   Opcional no MVP            │
 └─────────────────────┘   └──────────────────────────────┘
 ```
 

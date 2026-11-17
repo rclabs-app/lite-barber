@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appointments.push(appointment);
         localStorage.setItem('b_appointments', JSON.stringify(appointments));
 
-        const msg = encodeURIComponent(`ESTILO AGENDADO:\n👤 ${appointment.name}\n⏰ ${appointment.time}\n✂️ ${appointment.service}\n🏛️ Barbearia Elite`);
+        const msg = encodeURIComponent(`ESTILO AGENDADO:\n👤 ${appointment.name}\n⏰ ${appointment.time}\n✂️ ${appointment.service}\n🏛️ Espaço Elite`);
         showToast('HORÁRIO CONFIRMADO.');
         setTimeout(() => {
             window.open(`https://wa.me/55${appointment.phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
