@@ -34,14 +34,22 @@ class AdminWaitlistController extends Controller
         $shopId = $request->user()->shop_id;
 
         $request->validate([
-            'client_name'  => 'required|string|max:150',
+            'client_name' => 'required|string|max:150',
             'client_phone' => 'required|string|max:20',
             'desired_date' => 'required|date|after_or_equal:today',
             'desired_time' => 'required|date_format:H:i',
-            'professional_id'    => 'nullable|exists:professionals,id',
-            'service_id'   => 'nullable|exists:services,id',
-            'notes'        => 'nullable|string|max:500',
+            'professional_id' => 'nullable|integer',
+            'service_id' => 'nullable|integer',
+            'notes' => 'nullable|string|max:500',
         ]);
+
+        if ($request->professional_id && ! \App\Models\Professional::where('shop_id', $shopId)->whereKey($request->professional_id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Profissional não pertence a esta barbearia.'], 422);
+        }
+
+        if ($request->service_id && ! \App\Models\Service::where('shop_id', $shopId)->whereKey($request->service_id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Serviço não pertence a esta barbearia.'], 422);
+        }
 
         $entry = Waitlist::create([
             'shop_id'      => $shopId,
@@ -55,7 +63,10 @@ class AdminWaitlistController extends Controller
             'status'       => 'waiting',
         ]);
 
-        return response()->json($entry->load(['professional', 'service']), 201);
+        return response()->json([
+            'success' => true,
+            'entry' => $entry->load(['professional', 'service']),
+        ], 201);
     }
 
     /**
@@ -66,11 +77,21 @@ class AdminWaitlistController extends Controller
         $shopId = $request->user()->shop_id;
         $entry  = Waitlist::where('shop_id', $shopId)->findOrFail($id);
 
-        $entry->status      = 'notified';
+        if ($entry->status !== 'waiting') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Somente entradas aguardando podem ser notificadas.',
+            ], 422);
+        }
+
+        $entry->status = 'notified';
         $entry->notified_at = now();
         $entry->save();
 
-        return response()->json($entry);
+        return response()->json([
+            'success' => true,
+            'entry' => $entry,
+        ]);
     }
 
     /**
@@ -80,9 +101,21 @@ class AdminWaitlistController extends Controller
     {
         $shopId = $request->user()->shop_id;
         $entry  = Waitlist::where('shop_id', $shopId)->findOrFail($id);
-        $entry->delete();
 
-        return response()->json(['message' => 'Removido da lista de espera.']);
+        if ($entry->status === 'cancelled') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta entrada já foi removida.',
+            ], 422);
+        }
+
+        $entry->status = 'cancelled';
+        $entry->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Removido da lista de espera.',
+        ]);
     }
 
     /**
