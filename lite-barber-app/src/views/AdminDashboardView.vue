@@ -26,6 +26,7 @@ const shopName = ref('Meu Estabelecimento')
 const userName = ref('Admin')
 const currentCalendarMonth = ref(new Date())
 const todayRevenue = ref(0)
+const dashboardMetrics = ref(null)
 const _d = new Date();
 const today = _d.getFullYear() + '-' + String(_d.getMonth() + 1).padStart(2, '0') + '-' + String(_d.getDate()).padStart(2, '0');
 const agendaFilterDate = ref(today)
@@ -55,9 +56,15 @@ const navItems = [
 const dashboardAgendaPage = ref(1)
 const dashboardAgendaPerPage = 5
 
-const todayAppointments = computed(() =>
-  appointments.value.filter(a => a.scheduled_at && a.scheduled_at.startsWith(today))
+const todayAppointments = computed(() => {
+  if (Array.isArray(dashboardMetrics.value?.today_appointments)) {
+    return dashboardMetrics.value.today_appointments
+  }
+  return appointments.value.filter(a => a.scheduled_at && a.scheduled_at.startsWith(today))
     .sort((a,b) => a.scheduled_at.localeCompare(b.scheduled_at))
+})
+const todayAppointmentsCount = computed(() =>
+  dashboardMetrics.value?.appointments_today ?? todayAppointments.value.length
 )
 const dashboardPaginatedAppointments = computed(() => {
   const start = (dashboardAgendaPage.value - 1) * dashboardAgendaPerPage
@@ -68,22 +75,44 @@ const dashboardAgendaTotalPages = computed(() => {
 })
 const todayCompleted = computed(() => todayAppointments.value.filter(a => a.status === 'completed'))
 const todayNoShow = computed(() => todayAppointments.value.filter(a => a.status === 'no_show'))
+const todayNoShowCount = computed(() =>
+  dashboardMetrics.value?.no_show_today ?? todayNoShow.value.length
+)
 const monthAppointments = computed(() => {
   const m = new Date().toISOString().slice(0,7)
   return appointments.value.filter(a => a.scheduled_at && a.scheduled_at.startsWith(m))
 })
+const monthAppointmentsCount = computed(() =>
+  dashboardMetrics.value?.appointments_month ?? monthAppointments.value.length
+)
+const waitlistCount = computed(() =>
+  dashboardMetrics.value?.waitlist_count ?? waitlist.value.length
+)
 
 const ticketMedio = computed(() => {
+  if (dashboardMetrics.value && dashboardMetrics.value.ticket_average !== undefined) {
+    return Number(dashboardMetrics.value.ticket_average || 0)
+  }
   const comp = todayCompleted.value
   if (!comp.length) return 0
   const total = comp.reduce((s,a) => s + parseFloat(a.price_snapshot || 0), 0)
   return total / comp.length
 })
 const noShowRate = computed(() => {
+  if (dashboardMetrics.value && dashboardMetrics.value.no_show_rate !== undefined) {
+    return Number(dashboardMetrics.value.no_show_rate || 0)
+  }
   if (!todayAppointments.value.length) return 0
   return Math.round((todayNoShow.value.length / todayAppointments.value.length) * 100)
 })
 const professionalRanking = computed(() => {
+  if (Array.isArray(dashboardMetrics.value?.professional_ranking)) {
+    return dashboardMetrics.value.professional_ranking.map(item => ({
+      name: item.name,
+      atendimentos: Number(item.atendimentos ?? item.completed_count ?? 0),
+      faturamento: Number(item.faturamento ?? item.revenue ?? 0),
+    }))
+  }
   const map = {}
   appointments.value.forEach(a => {
     if (!a.professional) return
@@ -151,9 +180,23 @@ const formatDateLong = (dateStr) => {
 }
 
 const calculateRevenue = () => {
+  if (dashboardMetrics.value && dashboardMetrics.value.revenue_today !== undefined) {
+    todayRevenue.value = Number(dashboardMetrics.value.revenue_today || 0)
+    return
+  }
   todayRevenue.value = appointments.value
     .filter(a => a.status === 'completed' && a.scheduled_at && a.scheduled_at.startsWith(today))
     .reduce((sum, a) => sum + parseFloat(a.price_snapshot || 0), 0)
+}
+
+const fetchDashboardMetrics = async () => {
+  try {
+    const { data } = await axios.get('/api/admin/dashboard/metrics')
+    dashboardMetrics.value = data
+    todayRevenue.value = Number(data.revenue_today || 0)
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 const fetchAgenda = async (page = 1) => {
@@ -183,19 +226,19 @@ const fetchWaitlist = async (page = 1) => {
 }
 
 const addToWaitlist = async () => {
-  try { await axios.post('/api/admin/waitlist', newWaitlistEntry.value); newWaitlistEntry.value = { client_name: '', client_phone: '', desired_date: '', desired_time: '', professional_id: '', service_id: '', notes: '' }; fetchWaitlist(); Toast.fire({ icon: 'success', title: 'Adicionado à lista de espera' }) }
+  try { await axios.post('/api/admin/waitlist', newWaitlistEntry.value); newWaitlistEntry.value = { client_name: '', client_phone: '', desired_date: '', desired_time: '', professional_id: '', service_id: '', notes: '' }; fetchWaitlist(); fetchDashboardMetrics(); Toast.fire({ icon: 'success', title: 'Adicionado à lista de espera' }) }
   catch(err) { Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Erro ao adicionar' }) }
 }
 
 const notifyWaitlistClient = async (id) => {
-  try { await axios.patch(`/api/admin/waitlist/${id}/notify`); fetchWaitlist(); Toast.fire({ icon: 'success', title: 'Marcado como notificado' }) }
+  try { await axios.patch(`/api/admin/waitlist/${id}/notify`); fetchWaitlist(); fetchDashboardMetrics(); Toast.fire({ icon: 'success', title: 'Marcado como notificado' }) }
   catch(err) { Toast.fire({ icon: 'error', title: 'Erro ao notificar' }) }
 }
 
 const removeFromWaitlist = async (id) => {
   const r = await LuxurySwal.fire({ title: 'Remover da lista?', text: 'O cliente será removido.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sim, remover', cancelButtonText: 'Cancelar' })
   if (!r.isConfirmed) return
-  try { await axios.delete(`/api/admin/waitlist/${id}`); fetchWaitlist(); Toast.fire({ icon: 'success', title: 'Removido' }) }
+  try { await axios.delete(`/api/admin/waitlist/${id}`); fetchWaitlist(); fetchDashboardMetrics(); Toast.fire({ icon: 'success', title: 'Removido' }) }
   catch(err) { Toast.fire({ icon: 'error', title: 'Erro ao remover' }) }
 }
 
@@ -207,6 +250,7 @@ const updateStatus = async (id, status) => {
   try {
     const { data } = await axios.patch(`/api/admin/appointments/${id}/status`, { status })
     fetchAgenda(appointmentsPagination.value.current_page)
+    fetchDashboardMetrics()
     Toast.fire({ icon: 'success', title: `Status: ${statusMap[status]}` })
     if (status === 'cancelled' && data.waiting_clients?.length > 0) {
       waitlistAlert.value = data.waiting_clients
@@ -386,6 +430,7 @@ onMounted(() => {
   fetchServices()
   fetchProfessionals()
   fetchShopConfig()
+  fetchDashboardMetrics()
 })
 </script>
 
@@ -453,7 +498,7 @@ onMounted(() => {
         <div class="kpi-grid">
           <div class="kpi-card kpi-blue">
             <div class="kpi-label">AGENDAMENTOS HOJE</div>
-            <div class="kpi-value">{{ todayAppointments.length }}</div>
+            <div class="kpi-value">{{ todayAppointmentsCount }}</div>
           </div>
           <div class="kpi-card kpi-green">
             <div class="kpi-label">RECEITA HOJE</div>
@@ -465,15 +510,15 @@ onMounted(() => {
           </div>
           <div class="kpi-card kpi-purple" style="cursor:pointer" @click="navigate('fila')">
             <div class="kpi-label">LISTA DE ESPERA</div>
-            <div class="kpi-value">{{ waitlist.length }}</div>
+            <div class="kpi-value">{{ waitlistCount }}</div>
           </div>
           <div class="kpi-card kpi-orange">
             <div class="kpi-label">NO-SHOW HOJE</div>
-            <div class="kpi-value">{{ todayNoShow.length }} <span class="kpi-pct">({{ noShowRate }}%)</span></div>
+            <div class="kpi-value">{{ todayNoShowCount }} <span class="kpi-pct">({{ noShowRate }}%)</span></div>
           </div>
           <div class="kpi-card kpi-gold">
             <div class="kpi-label">AGENDADOS (MÊS)</div>
-            <div class="kpi-value">{{ monthAppointments.length }}</div>
+            <div class="kpi-value">{{ monthAppointmentsCount }}</div>
           </div>
         </div>
 

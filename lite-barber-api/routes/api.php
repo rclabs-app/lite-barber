@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminAppointmentController;
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminProfessionalController;
 use App\Http\Controllers\AdminServiceController;
 use App\Http\Controllers\AdminShopController;
@@ -37,6 +38,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     // Admin Endpoints
+    Route::get('/admin/dashboard/metrics', [AdminDashboardController::class, 'metrics']);
     Route::get('/admin/appointments', [AdminAppointmentController::class, 'index']);
     Route::patch('/admin/appointments/{id}/status', [AdminAppointmentController::class, 'updateStatus']);
 
