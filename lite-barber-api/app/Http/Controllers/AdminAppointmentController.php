@@ -36,14 +36,41 @@ class AdminAppointmentController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:scheduled,confirmed,in_progress,completed,cancelled,no_show'
+            'status' => 'required|in:scheduled,confirmed,in_progress,completed,cancelled,no_show',
+            'cancel_reason' => 'nullable|string|max:255',
         ]);
 
         $appointment = Appointment::where('shop_id', $request->user()->shop_id)->findOrFail($id);
 
-        $appointment->status = $request->status;
-        if ($request->status === 'cancelled') {
+        $current = $appointment->status;
+        $next = $request->status;
+
+        $terminalStatuses = ['completed', 'cancelled', 'no_show'];
+        if (in_array($current, $terminalStatuses, true) && $current !== $next) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Agendamentos finalizados não podem mudar de status.',
+            ], 422);
+        }
+
+        $allowedTransitions = [
+            'scheduled' => ['confirmed', 'in_progress', 'cancelled', 'no_show'],
+            'confirmed' => ['in_progress', 'completed', 'cancelled', 'no_show'],
+            'in_progress' => ['completed', 'cancelled', 'no_show'],
+        ];
+
+        if ($current !== $next && isset($allowedTransitions[$current]) && ! in_array($next, $allowedTransitions[$current], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transição de status inválida.',
+            ], 422);
+        }
+
+        $appointment->status = $next;
+
+        if ($next === 'cancelled') {
             $appointment->cancelled_by = 'admin';
+            $appointment->cancel_reason = $request->cancel_reason;
         }
 
         $appointment->save();
@@ -62,8 +89,9 @@ class AdminAppointmentController extends Controller
         }
 
         return response()->json([
-            'message'         => 'Status atualizado',
-            'appointment'     => $appointment,
+            'success' => true,
+            'message' => 'Status atualizado',
+            'appointment' => $appointment,
             'waiting_clients' => $waitingClients,
         ]);
     }

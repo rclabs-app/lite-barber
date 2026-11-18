@@ -24,6 +24,7 @@ const today = new Date()
 const selectedDate = ref(null)
 const selectedTime = ref(null)
 const loadingSlots = ref(false)
+const submitting = ref(false)
 
 const currentCalendarMonth = ref(new Date())
 
@@ -107,22 +108,35 @@ const fetchAvailableSlots = async () => {
 
         console.log('All potential slots:', allSlots)
 
+        const durationMinutes = selectedService.value?.duration_minutes || shop.value.slot_duration || 30
+
         // Filtrar horários ocupados
         availableSlots.value = allSlots.filter(slotTime => {
-            // Criar data local para o slot
             const [h, m] = slotTime.split(':')
             const [y, mon, d] = selectedDate.value.split('-')
             const slotStart = new Date(y, mon - 1, d, h, m, 0)
-            
+            const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60 * 1000)
+
+            if (slotStart <= new Date()) return false
+
+            if (shop.value.closing_time) {
+                const [closeH, closeM] = shop.value.closing_time.substring(0, 5).split(':').map(Number)
+                const closing = new Date(y, mon - 1, d, closeH, closeM, 0)
+                if (slotEnd > closing) return false
+            }
+
+            if (shop.value.lunch_start && shop.value.lunch_end) {
+                const [lunchStartH, lunchStartM] = shop.value.lunch_start.substring(0, 5).split(':').map(Number)
+                const [lunchEndH, lunchEndM] = shop.value.lunch_end.substring(0, 5).split(':').map(Number)
+                const lunchStart = new Date(y, mon - 1, d, lunchStartH, lunchStartM, 0)
+                const lunchEnd = new Date(y, mon - 1, d, lunchEndH, lunchEndM, 0)
+                if (slotStart < lunchEnd && slotEnd > lunchStart) return false
+            }
+
             return !busySlots.some(busy => {
-                // Converter string do banco para Date local
-                // O banco retorna YYYY-MM-DD HH:MM:SS
-                const bStartStr = busy.scheduled_at.replace(' ', 'T')
-                const bEndStr = busy.ends_at.replace(' ', 'T')
-                const bStart = new Date(bStartStr)
-                const bEnd = new Date(bEndStr)
-                
-                return slotStart >= bStart && slotStart < bEnd
+                const bStart = new Date(busy.scheduled_at.replace(' ', 'T'))
+                const bEnd = new Date(busy.ends_at.replace(' ', 'T'))
+                return slotStart < bEnd && slotEnd > bStart
             })
         })
 
@@ -130,13 +144,17 @@ const fetchAvailableSlots = async () => {
 
     } catch (err) {
         console.error('Erro ao buscar horários ocupados:', err)
-        Toast.fire({ icon: 'error', title: 'Erro ao carregar horários' })
+        Toast.fire({
+            icon: 'error',
+            title: 'Erro ao carregar horários',
+            text: err.normalized?.message || 'Tente novamente em alguns instantes.'
+        })
     } finally {
         loadingSlots.value = false
     }
 }
 
-watch(selectedProfessionalId, () => {
+watch([selectedProfessionalId, selectedServiceId], () => {
     if (selectedDate.value) {
         selectedTime.value = null
         fetchAvailableSlots()
@@ -266,6 +284,9 @@ const confirmBooking = async () => {
         return;
     }
 
+    if (submitting.value) return
+    submitting.value = true
+
     try {
         await axios.post(`/api/shops/${encodeURIComponent(slug.value)}/appointments`, {
             service_id: selectedServiceId.value,
@@ -290,10 +311,20 @@ const confirmBooking = async () => {
         LuxurySwal.fire({
             icon: 'error',
             title: 'Falha ao agendar',
-            text: err.response?.data?.message || err.message
+            text: err.normalized?.message || err.response?.data?.message || err.message
         })
+    } finally {
+        submitting.value = false
     }
 }
+
+const selectedService = computed(() =>
+    services.value.find((service) => service.id === selectedServiceId.value) || null
+)
+
+const selectedProfessional = computed(() =>
+    professionals.value.find((professional) => professional.id === selectedProfessionalId.value) || null
+)
 </script>
 
 <template>
@@ -415,8 +446,11 @@ const confirmBooking = async () => {
                 </div>
 
                 <div class="luxury-sticky-footer">
-                    <button type="submit" class="btn-confirm-luxury">
-                        RESERVAR HORÁRIO <i class="fas fa-arrow-right"></i>
+                    <button type="submit" class="btn-confirm-luxury" :disabled="submitting">
+                        <span v-if="submitting">RESERVANDO...</span>
+                        <span v-else>
+                            RESERVAR HORÁRIO <i class="fas fa-arrow-right"></i>
+                        </span>
                     </button>
                 </div>
             </form>
