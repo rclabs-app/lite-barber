@@ -16,6 +16,7 @@ return new class extends Migration
             $table->time('desired_time')->nullable();
             $table->timestamp('notified_at')->nullable();
 
+            $table->dropIndex(['shop_id', 'position']);
             $table->dropColumn(['position', 'estimated_wait', 'called_at', 'started_at', 'completed_at']);
         });
     }
@@ -33,6 +34,7 @@ return new class extends Migration
             $table->timestamp('called_at')->nullable();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
+            $table->index(['shop_id', 'position']);
         });
     }
 };
