@@ -13,17 +13,24 @@ use App\Http\Controllers\AdminShopController;
 use App\Http\Controllers\AdminProfessionalController;
 
 // Public Endpoints (App Cliente)
-Route::get('/shops/{slug}', [PublicShopController::class, 'show']);
-Route::get('/shops/{slug}/services', [PublicShopController::class, 'services']);
-Route::get('/shops/{slug}/professionals', [PublicShopController::class, 'professionals']);
-Route::post('/shops/{slug}/appointments', [PublicAppointmentController::class, 'store']);
-Route::get('/shops/{slug}/appointments/busy', [PublicAppointmentController::class, 'getBusySlots']);
-Route::get('/shops/{slug}/waitlist', [PublicWaitlistController::class, 'status']);
-Route::post('/shops/{slug}/waitlist', [PublicWaitlistController::class, 'store']);
+Route::middleware('throttle:public-read')->group(function () {
+    Route::get('/shops/{slug}', [PublicShopController::class, 'show']);
+    Route::get('/shops/{slug}/services', [PublicShopController::class, 'services']);
+    Route::get('/shops/{slug}/professionals', [PublicShopController::class, 'professionals']);
+    Route::get('/shops/{slug}/appointments/busy', [PublicAppointmentController::class, 'getBusySlots']);
+    Route::get('/shops/{slug}/waitlist', [PublicWaitlistController::class, 'status']);
+});
+
+Route::middleware('throttle:public-write')->group(function () {
+    Route::post('/shops/{slug}/appointments', [PublicAppointmentController::class, 'store']);
+    Route::post('/shops/{slug}/waitlist', [PublicWaitlistController::class, 'store']);
+});
 
 // Authentication Endpoints
-Route::post('/auth/login', [AuthController::class, 'login']);
-Route::post('/auth/register', [AuthController::class, 'register']);
+Route::middleware('throttle:auth')->group(function () {
+    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/register', [AuthController::class, 'register']);
+});
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
