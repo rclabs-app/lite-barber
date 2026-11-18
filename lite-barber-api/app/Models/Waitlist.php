@@ -16,7 +16,7 @@ class Waitlist extends Model
 
     protected $casts = [
         'desired_date' => 'date',
-        'notified_at'  => 'datetime',
+        'notified_at' => 'datetime',
     ];
 
     public function shop(): BelongsTo

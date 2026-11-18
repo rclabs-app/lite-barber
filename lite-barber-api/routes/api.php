@@ -1,16 +1,15 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\PublicShopController;
-use App\Http\Controllers\PublicAppointmentController;
-use App\Http\Controllers\PublicWaitlistController;
-use App\Http\Controllers\AdminWaitlistController;
 use App\Http\Controllers\AdminAppointmentController;
+use App\Http\Controllers\AdminProfessionalController;
 use App\Http\Controllers\AdminServiceController;
 use App\Http\Controllers\AdminShopController;
-use App\Http\Controllers\AdminProfessionalController;
+use App\Http\Controllers\AdminWaitlistController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PublicAppointmentController;
+use App\Http\Controllers\PublicShopController;
+use App\Http\Controllers\PublicWaitlistController;
+use Illuminate\Support\Facades\Route;
 
 // Public Endpoints (App Cliente)
 Route::middleware('throttle:public-read')->group(function () {

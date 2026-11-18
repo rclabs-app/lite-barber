@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Model;
 
 class Service extends Model
 {
@@ -13,6 +13,6 @@ class Service extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 }

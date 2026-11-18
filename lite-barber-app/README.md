@@ -32,6 +32,14 @@ npm run build
 npm run preview
 ```
 
+## Qualidade contínua
+
+```bash
+npm run check
+```
+
+Este comando executa o build de produção. O workflow `.github/workflows/ci.yml` executa o mesmo check em pull requests e pushes para `main`.
+
 ## Integração HTTP
 
 Todas as chamadas HTTP devem usar `src/services/api.js`.

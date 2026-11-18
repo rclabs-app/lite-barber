@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Professional;
+use App\Models\Service;
 use App\Models\Waitlist;
-use App\Models\Appointment;
 use Illuminate\Http\Request;
 
 class AdminWaitlistController extends Controller
@@ -43,24 +44,24 @@ class AdminWaitlistController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
-        if ($request->professional_id && ! \App\Models\Professional::where('shop_id', $shopId)->whereKey($request->professional_id)->exists()) {
+        if ($request->professional_id && ! Professional::where('shop_id', $shopId)->whereKey($request->professional_id)->exists()) {
             return response()->json(['success' => false, 'message' => 'Profissional não pertence a esta barbearia.'], 422);
         }
 
-        if ($request->service_id && ! \App\Models\Service::where('shop_id', $shopId)->whereKey($request->service_id)->exists()) {
+        if ($request->service_id && ! Service::where('shop_id', $shopId)->whereKey($request->service_id)->exists()) {
             return response()->json(['success' => false, 'message' => 'Serviço não pertence a esta barbearia.'], 422);
         }
 
         $entry = Waitlist::create([
-            'shop_id'      => $shopId,
-            'client_name'  => $request->client_name,
+            'shop_id' => $shopId,
+            'client_name' => $request->client_name,
             'client_phone' => $request->client_phone,
             'desired_date' => $request->desired_date,
             'desired_time' => $request->desired_time,
-            'professional_id'    => $request->professional_id,
-            'service_id'   => $request->service_id,
-            'notes'        => $request->notes,
-            'status'       => 'waiting',
+            'professional_id' => $request->professional_id,
+            'service_id' => $request->service_id,
+            'notes' => $request->notes,
+            'status' => 'waiting',
         ]);
 
         return response()->json([
@@ -75,7 +76,7 @@ class AdminWaitlistController extends Controller
     public function markNotified(Request $request, $id)
     {
         $shopId = $request->user()->shop_id;
-        $entry  = Waitlist::where('shop_id', $shopId)->findOrFail($id);
+        $entry = Waitlist::where('shop_id', $shopId)->findOrFail($id);
 
         if ($entry->status !== 'waiting') {
             return response()->json([
@@ -100,7 +101,7 @@ class AdminWaitlistController extends Controller
     public function destroy(Request $request, $id)
     {
         $shopId = $request->user()->shop_id;
-        $entry  = Waitlist::where('shop_id', $shopId)->findOrFail($id);
+        $entry = Waitlist::where('shop_id', $shopId)->findOrFail($id);
 
         if ($entry->status === 'cancelled') {
             return response()->json([

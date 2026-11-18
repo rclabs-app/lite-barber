@@ -13,7 +13,9 @@ class AppointmentAvailabilityTest extends TestCase
     use RefreshDatabase;
 
     private Shop $shop;
+
     private Professional $professional;
+
     private Service $service;
 
     protected function setUp(): void

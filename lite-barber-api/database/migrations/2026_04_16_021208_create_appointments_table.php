@@ -16,22 +16,22 @@ return new class extends Migration
             $table->foreignId('shop_id')->constrained()->onDelete('cascade');
             $table->foreignId('professional_id')->constrained()->onDelete('restrict');
             $table->foreignId('service_id')->constrained()->onDelete('restrict');
-            
+
             $table->string('client_name', 150);
             $table->string('client_phone', 20);
-            
+
             $table->dateTime('scheduled_at');
             $table->dateTime('ends_at');
             $table->enum('status', ['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show'])->default('scheduled');
-            
+
             $table->enum('cancelled_by', ['client', 'admin'])->nullable();
             $table->string('cancel_reason', 255)->nullable();
             $table->text('notes')->nullable();
-            $table->decimal('price_snapshot', 8, 2);            
-            
+            $table->decimal('price_snapshot', 8, 2);
+
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index(['shop_id', 'scheduled_at']);
             $table->index(['professional_id', 'scheduled_at']);
             $table->index(['shop_id', 'status']);

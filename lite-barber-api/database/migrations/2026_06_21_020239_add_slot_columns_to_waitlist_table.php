@@ -15,7 +15,7 @@ return new class extends Migration
             $table->date('desired_date')->nullable();
             $table->time('desired_time')->nullable();
             $table->timestamp('notified_at')->nullable();
-            
+
             $table->dropColumn(['position', 'estimated_wait', 'called_at', 'started_at', 'completed_at']);
         });
     }
@@ -27,7 +27,7 @@ return new class extends Migration
     {
         Schema::table('waitlist', function (Blueprint $table) {
             $table->dropColumn(['desired_date', 'desired_time', 'notified_at']);
-            
+
             $table->unsignedSmallInteger('position')->default(0);
             $table->unsignedSmallInteger('estimated_wait')->nullable();
             $table->timestamp('called_at')->nullable();

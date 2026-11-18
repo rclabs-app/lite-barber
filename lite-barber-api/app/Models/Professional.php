@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Model;
 
 class Professional extends Model
 {
@@ -13,6 +13,6 @@ class Professional extends Model
 
     protected $casts = [
         'specialties' => 'array',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 }

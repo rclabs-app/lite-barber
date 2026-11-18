@@ -3,9 +3,11 @@
 namespace App\Models\Concerns;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 /**
- * @mixin \Illuminate\Database\Eloquent\Model
+ * @mixin Model
+ *
  * @method static void addGlobalScope(string $identifier, callable $scope)
  * @method static void creating(callable $callback)
  */

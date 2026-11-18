@@ -1,0 +1,65 @@
+name: Lite Barber CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  api:
+    name: Laravel API tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: lite-barber-api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, sqlite3
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare Laravel environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan config:clear
+
+      - name: Run PHPUnit
+        run: php artisan test
+
+      - name: Check PHP formatting
+        run: vendor/bin/pint --test
+
+  frontend:
+    name: Vue frontend build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: lite-barber-app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: lite-barber-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build

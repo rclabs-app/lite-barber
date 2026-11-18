@@ -18,7 +18,7 @@ class AdminProfessionalController extends Controller
             'name' => 'required|string|max:100',
             'phone' => 'nullable|string|max:20',
             'specialties' => 'nullable|array',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
         ]);
 
         $professional = Professional::create([
@@ -26,7 +26,7 @@ class AdminProfessionalController extends Controller
             'name' => $request->name,
             'phone' => $request->phone,
             'specialties' => $request->specialties,
-            'is_active' => $request->is_active ?? true
+            'is_active' => $request->is_active ?? true,
         ]);
 
         return response()->json([
@@ -43,7 +43,7 @@ class AdminProfessionalController extends Controller
             'name' => 'sometimes|string|max:100',
             'phone' => 'nullable|string|max:20',
             'specialties' => 'nullable|array',
-            'is_active' => 'sometimes|boolean'
+            'is_active' => 'sometimes|boolean',
         ]);
 
         $professional->update($request->all());

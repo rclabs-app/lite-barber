@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\Professional;
 use App\Models\Service;
 use App\Models\Shop;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -68,7 +69,7 @@ class PublicAppointmentController extends Controller
                     'status' => 'scheduled',
                 ]);
             });
-        } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+        } catch (UniqueConstraintViolationException) {
             return response()->json([
                 'success' => false,
                 'message' => 'O horário solicitado já foi preenchido por outro cliente.',

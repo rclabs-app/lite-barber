@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Appointment;
+use Illuminate\Http\Request;
 
 class AdminAppointmentController extends Controller
 {
@@ -27,7 +27,7 @@ class AdminAppointmentController extends Controller
             })
             ->orderBy('scheduled_at', 'asc');
 
-        $perPage      = (int) $request->query('per_page', 10);
+        $perPage = (int) $request->query('per_page', 10);
         $appointments = $query->paginate($perPage);
 
         return response()->json($appointments);
@@ -78,8 +78,8 @@ class AdminAppointmentController extends Controller
         // Se cancelado, verifica lista de espera para o mesmo horário
         $waitingClients = [];
         if ($request->status === 'cancelled') {
-            $date           = date('Y-m-d', strtotime($appointment->scheduled_at));
-            $time           = date('H:i', strtotime($appointment->scheduled_at));
+            $date = date('Y-m-d', strtotime($appointment->scheduled_at));
+            $time = date('H:i', strtotime($appointment->scheduled_at));
             $waitingClients = AdminWaitlistController::checkForWaitingClients(
                 $request->user()->shop_id,
                 $date,

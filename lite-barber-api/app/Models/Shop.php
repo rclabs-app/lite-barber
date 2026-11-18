@@ -11,7 +11,7 @@ class Shop extends Model
     protected $casts = [
         'working_days' => 'array',
         'unavailable_dates' => 'array',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     public function services()

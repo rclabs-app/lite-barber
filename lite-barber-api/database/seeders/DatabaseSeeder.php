@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -58,7 +58,7 @@ class DatabaseSeeder extends Seeder
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         $professionalId2 = DB::table('professionals')->insertGetId([
             'shop_id' => $shopId,
             'name' => 'Marcos',
@@ -99,7 +99,7 @@ class DatabaseSeeder extends Seeder
                 'display_order' => 3,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]
+            ],
         ]);
     }
 }

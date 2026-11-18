@@ -97,6 +97,15 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 php artisan test
 ```
 
+## Qualidade contínua
+
+```bash
+composer check
+npm run build
+```
+
+`composer check` executa o Pint em modo de validação e toda a suíte PHPUnit. O workflow `.github/workflows/ci.yml` replica essas verificações para a API e o frontend.
+
 ## Endpoints
 
 Os endpoints REST estão definidos em `routes/api.php`.

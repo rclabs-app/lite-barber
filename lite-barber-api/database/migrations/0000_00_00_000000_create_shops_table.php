@@ -22,19 +22,19 @@ return new class extends Migration
             $table->char('state', 2)->nullable();
             $table->string('logo_url', 500)->nullable();
             $table->text('description')->nullable();
-            
+
             $table->time('opening_time')->default('08:00:00');
             $table->time('closing_time')->default('19:00:00');
             $table->unsignedTinyInteger('slot_duration')->default(30);
-            $table->json('working_days')->default(json_encode([1,2,3,4,5])); // seg-sex
-            
-            $table->enum('plan', ['free','starter','pro','premium'])->default('free');
+            $table->json('working_days')->default(json_encode([1, 2, 3, 4, 5])); // seg-sex
+
+            $table->enum('plan', ['free', 'starter', 'pro', 'premium'])->default('free');
             $table->timestamp('plan_expires_at')->nullable();
             $table->boolean('is_active')->default(true);
-            
+
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index('slug');
             $table->index('owner_id');
         });

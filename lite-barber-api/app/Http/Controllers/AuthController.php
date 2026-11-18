@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use App\Models\User;
 use App\Models\Shop;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -15,7 +15,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'password' => 'required'
+            'password' => 'required',
         ]);
 
         $user = User::where('email', $request->email)->first();
@@ -51,7 +51,7 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->merge([
-            'slug' => Str::slug($request->input('slug', $request->input('shop_name')))
+            'slug' => Str::slug($request->input('slug', $request->input('shop_name'))),
         ]);
 
         $request->validate([
@@ -59,7 +59,7 @@ class AuthController extends Controller
             'slug' => 'required|string|max:100|unique:shops,slug',
             'admin_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed'
+            'password' => 'required|string|min:6|confirmed',
         ]);
 
         try {
@@ -76,7 +76,7 @@ class AuthController extends Controller
                 'password' => Hash::make($request->password),
                 'shop_id' => $shop->id,
                 'role' => 'owner',
-                'is_active' => true
+                'is_active' => true,
             ]);
 
             $shop->update(['owner_id' => $user->id]);
@@ -87,11 +87,12 @@ class AuthController extends Controller
                 'success' => true,
                 'token' => $user->createToken('admin_panel')->plainTextToken,
                 'user' => $user,
-                'shop' => $shop
+                'shop' => $shop,
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Erro ao registrar estabelecimento.',
@@ -99,28 +100,29 @@ class AuthController extends Controller
         }
     }
 
-    public function me(Request $request) 
+    public function me(Request $request)
     {
         $user = $request->user()->loadMissing('shop');
+
         return response()->json($user);
     }
 
     public function updateProfile(Request $request)
     {
         $user = $request->user();
-        
+
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'nullable|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:6'
+            'email' => 'nullable|email|unique:users,email,'.$user->id,
+            'password' => 'nullable|string|min:6',
         ]);
 
         $user->name = $request->name;
-        
+
         if ($request->filled('email')) {
             $user->email = $request->email;
         }
-        
+
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
         }
