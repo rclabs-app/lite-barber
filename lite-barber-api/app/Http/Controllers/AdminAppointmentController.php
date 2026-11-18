@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class AdminAppointmentController extends Controller
 {
@@ -24,6 +25,18 @@ class AdminAppointmentController extends Controller
             })
             ->when($request->query('from_date'), function ($q, $fromDate) {
                 return $q->whereDate('scheduled_at', '>=', $fromDate);
+            })
+            ->when($request->query('professional_id'), function ($query, $professionalId) {
+                return $query->where('professional_id', $professionalId);
+            })
+            ->when($request->query('status'), function ($query, $status) {
+                return $query->where('status', $status);
+            })
+            ->when($request->query('week'), function ($query, $week) {
+                $start = Carbon::parse($week)->startOfWeek();
+                $end = $start->copy()->endOfWeek();
+
+                return $query->whereBetween('scheduled_at', [$start, $end]);
             })
             ->orderBy('scheduled_at', 'asc');
 

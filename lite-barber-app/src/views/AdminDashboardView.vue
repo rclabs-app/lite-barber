@@ -29,6 +29,9 @@ const todayRevenue = ref(0)
 const _d = new Date();
 const today = _d.getFullYear() + '-' + String(_d.getMonth() + 1).padStart(2, '0') + '-' + String(_d.getDate()).padStart(2, '0');
 const agendaFilterDate = ref(today)
+const agendaProfessionalId = ref('')
+const agendaStatus = ref('')
+const agendaWeek = ref('')
 const isAgendaLoading = ref(false)
 const isEditingProfile = ref(false)
 const profileForm = ref({ name: '', email: '', password: '' })
@@ -156,7 +159,14 @@ const calculateRevenue = () => {
 const fetchAgenda = async (page = 1) => {
   isAgendaLoading.value = true
   try {
-    const params = { page, per_page: appointmentsPagination.value.per_page, date: agendaFilterDate.value }
+    const params = {
+      page,
+      per_page: appointmentsPagination.value.per_page,
+      date: agendaWeek.value ? undefined : agendaFilterDate.value,
+      professional_id: agendaProfessionalId.value || undefined,
+      status: agendaStatus.value || undefined,
+      week: agendaWeek.value || undefined,
+    }
 
     const { data } = await axios.get('/api/admin/appointments', { params })
     if (data.data) { appointments.value = data.data; appointmentsPagination.value = { current_page: data.current_page, last_page: data.last_page, per_page: data.per_page, total: data.total } }
@@ -546,6 +556,28 @@ onMounted(() => {
               <i class="fas fa-calendar-alt" style="color: var(--accent);"></i>
               <input type="date" v-model="agendaFilterDate" @change="fetchAgenda(1)" class="interval-date-input" style="margin-left: 8px;">
             </div>
+
+            <!-- Filtro de Profissional -->
+            <select v-model="agendaProfessionalId" @change="fetchAgenda(1)" class="per-page-select">
+              <option value="">Todos profissionais</option>
+              <option v-for="professional in professionals" :key="professional.id" :value="professional.id">
+                {{ professional.name }}
+              </option>
+            </select>
+
+            <!-- Filtro de Status -->
+            <select v-model="agendaStatus" @change="fetchAgenda(1)" class="per-page-select">
+              <option value="">Todos os status</option>
+              <option value="scheduled">Agendado</option>
+              <option value="confirmed">Confirmado</option>
+              <option value="in_progress">Em atendimento</option>
+              <option value="completed">Finalizado</option>
+              <option value="cancelled">Cancelado</option>
+              <option value="no_show">Não compareceu</option>
+            </select>
+
+            <!-- Filtro de Semana -->
+            <input type="date" v-model="agendaWeek" @change="fetchAgenda(1)" class="interval-date-input date-filter-btn">
 
             <!-- Por página -->
             <select v-model="appointmentsPagination.per_page" @change="fetchAgenda(1)" class="per-page-select">
@@ -1108,8 +1140,8 @@ onMounted(() => {
 .list-item-name { color: #fff; font-size: 0.9rem; display: block; }
 .list-item-meta { color: #666; font-size: 0.78rem; margin-top: 3px; display: flex; gap: 12px; }
 .list-item-actions { display: flex; gap: 16px; }
-.btn-link-gold { background: transparent; border: none; color: var(--accent); font-size: 0.72rem; font-weight: 800; letter-spacing: 1px; cursor: pointer; }
-.btn-link-red { background: transparent; border: none; color: #ef4444; font-size: 0.72rem; font-weight: 800; letter-spacing: 1px; cursor: pointer; }
+.btn-link-gold { background: transparent; border: none; color: var(--accent); font-size: 0.72rem; font-weight: 800; letter-spacing: 1px, 0.2s; cursor: pointer; }
+.btn-link-red { background: transparent; border: none; color: #ef4444; font-size: 0.72rem; font-weight: 800; letter-spacing: 1px, 0.2s; cursor: pointer; }
 
 /* Waitlist */
 .waitlist-card { background: #111; border: 1px solid #1e1e1e; border-radius: 10px; padding: 16px 20px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
