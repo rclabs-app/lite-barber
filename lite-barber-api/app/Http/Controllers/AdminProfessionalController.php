@@ -29,7 +29,10 @@ class AdminProfessionalController extends Controller
             'is_active' => $request->is_active ?? true
         ]);
 
-        return response()->json($professional, 201);
+        return response()->json([
+            'success' => true,
+            'professional' => $professional,
+        ], 201);
     }
 
     public function update(Request $request, $id)
