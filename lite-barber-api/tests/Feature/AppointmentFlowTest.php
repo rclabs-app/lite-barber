@@ -167,4 +167,61 @@ class AppointmentFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('appointment.status', 'no_show');
     }
+
+    public function test_client_can_view_and_cancel_appointment_via_public_token(): void
+    {
+        $shop = Shop::create([
+            'name' => 'Barbearia Token',
+            'slug' => 'barbearia-token',
+            'opening_time' => '09:00:00',
+            'closing_time' => '18:00:00',
+            'working_days' => [0, 1, 2, 3, 4, 5, 6],
+            'is_active' => true,
+        ]);
+
+        $professional = Professional::create([
+            'shop_id' => $shop->id,
+            'name' => 'Marcos',
+            'is_active' => true,
+        ]);
+
+        $service = Service::create([
+            'shop_id' => $shop->id,
+            'name' => 'Corte',
+            'price' => 60,
+            'duration_minutes' => 30,
+            'is_active' => true,
+        ]);
+
+        $scheduledAt = now()->copy()->addDays(3)->setTime(14, 0);
+
+        $created = $this->postJson('/api/shops/barbearia-token/appointments', [
+            'professional_id' => $professional->id,
+            'service_id' => $service->id,
+            'scheduled_at' => $scheduledAt->format('Y-m-d H:i:s'),
+            'customer_name' => 'Cliente Token',
+            'customer_phone' => '11999993333',
+        ])->assertCreated();
+
+        $token = $created->json('appointment.cancel_token');
+        $this->assertNotEmpty($token);
+
+        $this->getJson('/api/appointments/'.$token)
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('appointment.client_name', 'Cliente Token')
+            ->assertJsonPath('appointment.status', 'scheduled');
+
+        $this->postJson('/api/appointments/'.$token.'/cancel', [
+            'cancel_reason' => 'Imprevisto pessoal',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('appointment.status', 'cancelled')
+            ->assertJsonPath('appointment.cancelled_by', 'client');
+
+        $this->postJson('/api/appointments/'.$token.'/cancel')
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Este agendamento já foi finalizado ou cancelado.');
+    }
 }

@@ -19,11 +19,13 @@ Route::middleware('throttle:public-read')->group(function () {
     Route::get('/shops/{slug}/professionals', [PublicShopController::class, 'professionals']);
     Route::get('/shops/{slug}/appointments/busy', [PublicAppointmentController::class, 'getBusySlots']);
     Route::get('/shops/{slug}/waitlist', [PublicWaitlistController::class, 'status']);
+    Route::get('/appointments/{token}', [PublicAppointmentController::class, 'showByToken']);
 });
 
 Route::middleware('throttle:public-write')->group(function () {
     Route::post('/shops/{slug}/appointments', [PublicAppointmentController::class, 'store']);
     Route::post('/shops/{slug}/waitlist', [PublicWaitlistController::class, 'store']);
+    Route::post('/appointments/{token}/cancel', [PublicAppointmentController::class, 'cancelByToken']);
 });
 
 // Authentication Endpoints
@@ -39,6 +41,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
 
     // Admin Endpoints
     Route::get('/admin/dashboard/metrics', [AdminDashboardController::class, 'metrics']);
+    Route::get('/admin/reports', [AdminDashboardController::class, 'reports']);
     Route::get('/admin/appointments', [AdminAppointmentController::class, 'index']);
     Route::patch('/admin/appointments/{id}/status', [AdminAppointmentController::class, 'updateStatus']);
 

@@ -288,7 +288,7 @@ const confirmBooking = async () => {
     submitting.value = true
 
     try {
-        await axios.post(`/api/shops/${encodeURIComponent(slug.value)}/appointments`, {
+        const { data } = await axios.post(`/api/shops/${encodeURIComponent(slug.value)}/appointments`, {
             service_id: selectedServiceId.value,
             professional_id: selectedProfessionalId.value,
             customer_name: name.value,
@@ -304,7 +304,8 @@ const confirmBooking = async () => {
                 type: 'appointment',
                 name: name.value,
                 date: selectedDate.value,
-                time: selectedTime.value
+                time: selectedTime.value,
+                token: data.appointment?.cancel_token || undefined
             }
         })
     } catch (err) {

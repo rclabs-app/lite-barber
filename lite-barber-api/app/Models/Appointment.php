@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Appointment extends Model
 {
@@ -16,6 +17,15 @@ class Appointment extends Model
         'ends_at' => 'datetime',
         'price_snapshot' => 'decimal:2',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Appointment $appointment) {
+            if (empty($appointment->cancel_token)) {
+                $appointment->cancel_token = (string) Str::uuid();
+            }
+        });
+    }
 
     public function shop()
     {

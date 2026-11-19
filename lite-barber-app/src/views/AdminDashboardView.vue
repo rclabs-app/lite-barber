@@ -23,6 +23,13 @@ const newProfessional = ref({ name: '', phone: '', specialties: '' })
 const editingProfessionalId = ref(null)
 const shopConfig = ref({
   name: '',
+  description: '',
+  phone: '',
+  whatsapp_phone: '',
+  instagram_url: '',
+  address: '',
+  maps_url: '',
+  plan: 'free',
   opening_time: '08:00',
   closing_time: '19:00',
   slot_duration: 30,
@@ -33,6 +40,15 @@ const shopConfig = ref({
   theme_color: '#D4AF37',
   theme_mode: 'dark',
   logo_url: '',
+})
+
+const planLimits = computed(() => {
+  const isPro = ['pro', 'premium'].includes(shopConfig.value.plan)
+  return {
+    label: isPro ? 'Plano Pro' : 'Plano Lite',
+    maxProfessionals: isPro ? 8 : 2,
+    maxServices: isPro ? 20 : 5,
+  }
 })
 const shopName = ref('Meu Estabelecimento')
 const userName = ref('Admin')
@@ -59,10 +75,84 @@ const navItems = [
   { key: 'fila', icon: 'fas fa-hourglass-half', label: 'Lista de Espera' },
   { key: 'services', icon: 'fas fa-cut', label: 'Serviços' },
   { key: 'especialistas', icon: 'fas fa-user-tie', label: 'Especialistas' },
-  { key: 'relatorios', icon: 'fas fa-chart-bar', label: 'Relatórios', locked: true },
+  { key: 'relatorios', icon: 'fas fa-chart-bar', label: 'Relatórios' },
   { key: 'config', icon: 'fas fa-cog', label: 'Configurações' },
   { key: 'perfil', icon: 'fas fa-user', label: 'Meu Perfil', hidden: true },
 ]
+
+const firstDayOfMonth = _d.getFullYear() + '-' + String(_d.getMonth() + 1).padStart(2, '0') + '-01'
+const reportStartDate = ref(firstDayOfMonth)
+const reportEndDate = ref(today)
+const reportData = ref({
+  summary: { total_appointments: 0, completed_count: 0, cancelled_count: 0, no_show_count: 0, total_revenue: 0, ticket_average: 0 },
+  by_professional: [],
+  by_service: [],
+  appointments: [],
+})
+const isReportLoading = ref(false)
+
+const publicShopUrl = computed(() => {
+  const s = shopConfig.value?.slug
+  if (!s) return ''
+  return `${window.location.origin}/${s}`
+})
+
+const copyPublicShopLink = async () => {
+  if (!publicShopUrl.value) return
+  try {
+    await navigator.clipboard.writeText(publicShopUrl.value)
+    Toast.fire({ icon: 'success', title: 'Link da vitrine copiado!' })
+  } catch {
+    Toast.fire({ icon: 'info', title: publicShopUrl.value })
+  }
+}
+
+const openPublicShop = () => {
+  if (!shopConfig.value?.slug) return
+  window.open(`/${shopConfig.value.slug}`, '_blank')
+}
+
+const fetchReports = async () => {
+  isReportLoading.value = true
+  try {
+    const { data } = await axios.get('/api/admin/reports', {
+      params: {
+        start_date: reportStartDate.value || undefined,
+        end_date: reportEndDate.value || undefined,
+      },
+    })
+    reportData.value = data
+  } catch (err) {
+    console.error(err)
+  } finally {
+    isReportLoading.value = false
+  }
+}
+
+const exportReportCsv = () => {
+  const rows = [
+    ['Data/Hora', 'Cliente', 'Telefone', 'Profissional', 'Servico', 'Status', 'Valor (R$)'],
+    ...(reportData.value.appointments || []).map(a => [
+      a.scheduled_at || '',
+      a.client_name || '',
+      a.client_phone || '',
+      a.professional?.name || '',
+      a.service?.name || '',
+      statusMap[a.status] || a.status || '',
+      Number(a.price_snapshot || 0).toFixed(2),
+    ]),
+  ]
+  const csvContent = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', `relatorio-${reportStartDate.value}-a-${reportEndDate.value}.csv`)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
 
 
 const dashboardAgendaPage = ref(1)
@@ -376,7 +466,7 @@ const addProfessional = async () => {
     editingProfessionalId.value ? await axios.put(`/api/admin/professionals/${editingProfessionalId.value}`, payload) : await axios.post('/api/admin/professionals', payload)
     newProfessional.value = { name: '', phone: '', specialties: '' }; editingProfessionalId.value = null; fetchProfessionals()
     Toast.fire({ icon: 'success', title: 'Especialista salvo' })
-  } catch(err) { Toast.fire({ icon: 'error', title: 'Erro ao salvar especialista' }) }
+  } catch(err) { Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Erro ao salvar especialista' }) }
 }
 const editProfessional = (b) => { editingProfessionalId.value = b.id; newProfessional.value = { name: b.name, phone: b.phone || '', specialties: b.specialties ? b.specialties.join(', ') : '' } }
 const cancelEditProfessional = () => { editingProfessionalId.value = null; newProfessional.value = { name: '', phone: '', specialties: '' } }
@@ -435,6 +525,13 @@ const normalizeShopConfig = (data = {}) => {
   return {
     ...data,
     name: data.name || '',
+    description: data.description || '',
+    phone: data.phone || '',
+    whatsapp_phone: data.whatsapp_phone || '',
+    instagram_url: data.instagram_url || '',
+    address: data.address || '',
+    maps_url: data.maps_url || '',
+    plan: data.plan || 'free',
     opening_time: normalizeTimeField(data.opening_time) || '08:00',
     closing_time: normalizeTimeField(data.closing_time) || '19:00',
     slot_duration: Number(data.slot_duration || 30),
@@ -467,6 +564,12 @@ const updateShopConfig = async () => {
   try {
     const payload = {
       name: shopConfig.value.name,
+      description: shopConfig.value.description || null,
+      phone: shopConfig.value.phone || null,
+      whatsapp_phone: shopConfig.value.whatsapp_phone || null,
+      instagram_url: shopConfig.value.instagram_url || null,
+      address: shopConfig.value.address || null,
+      maps_url: shopConfig.value.maps_url || null,
       opening_time: normalizeTimeField(shopConfig.value.opening_time),
       closing_time: normalizeTimeField(shopConfig.value.closing_time),
       slot_duration: Number(shopConfig.value.slot_duration || 30),
@@ -569,7 +672,13 @@ const logout = async () => {
   await router.replace('/')
 }
 
-const navigate = (key) => { if (key === 'relatorios') return; activeTab.value = key; sidebarOpen.value = false }
+const navigate = (key) => {
+  activeTab.value = key
+  sidebarOpen.value = false
+  if (key === 'relatorios') {
+    fetchReports()
+  }
+}
 
 const greetingText = computed(() => {
   const h = new Date().getHours()
@@ -637,7 +746,7 @@ onUnmounted(() => {
     </nav>
 
     <div class="sidebar-footer">
-      <div class="plan-badge">Plano Bronze</div>
+      <div class="plan-badge">{{ planLimits.label }}</div>
       <div class="sidebar-user" @click="editProfile" style="cursor: pointer;" title="Editar Perfil">
         <div class="user-avatar">{{ userName.charAt(0).toUpperCase() }}</div>
         <span class="user-name">{{ userName }}</span>
@@ -1028,7 +1137,7 @@ onUnmounted(() => {
       <section v-if="activeTab === 'services'">
         <div class="section-toolbar">
           <h2 class="section-title">Menu de Serviços</h2>
-          <p class="section-subtitle">Adicione ou remova os serviços oferecidos.</p>
+          <p class="section-subtitle">Adicione ou remova os serviços oferecidos · {{ services.length }} / {{ planLimits.maxServices }} utilizados ({{ planLimits.label }})</p>
         </div>
         <form @submit.prevent="addService" class="form-card">
           <input v-model="newService.name" type="text" placeholder="Nome do Serviço" required class="form-input" style="margin-bottom:12px;">
@@ -1059,7 +1168,7 @@ onUnmounted(() => {
       <section v-if="activeTab === 'especialistas'">
         <div class="section-toolbar">
           <h2 class="section-title">Especialistas</h2>
-          <p class="section-subtitle">Gerencie quem atende em sua unidade.</p>
+          <p class="section-subtitle">Gerencie quem atende em sua unidade · {{ professionals.length }} / {{ planLimits.maxProfessionals }} utilizados ({{ planLimits.label }})</p>
         </div>
         <form @submit.prevent="addProfessional" class="form-card">
           <div style="display:flex;gap:12px;flex-wrap:wrap;">
@@ -1088,16 +1197,85 @@ onUnmounted(() => {
         </div>
       </section>
 
-      <!-- ===== RELATÓRIOS (bloqueado) ===== -->
-      <section v-if="activeTab === 'relatorios'" class="locked-section">
-        <i class="fas fa-lock lock-icon"></i>
-        <h2>Relatórios</h2>
-        <p>Disponível nos planos Silver e Gold.</p>
+      <!-- ===== RELATÓRIOS ===== -->
+      <section v-if="activeTab === 'relatorios'">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Relatórios Financeiros</h2>
+            <p class="section-subtitle">Desempenho por período, especialistas e serviços</p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <input type="date" v-model="reportStartDate" class="interval-date-input date-filter-btn" title="Data inicial">
+            <input type="date" v-model="reportEndDate" class="interval-date-input date-filter-btn" title="Data final">
+            <button type="button" @click="fetchReports" class="btn-primary">FILTRAR</button>
+            <button type="button" @click="exportReportCsv" class="btn-page"><i class="fas fa-file-csv"></i> Exportar CSV</button>
+          </div>
+        </div>
+
+        <div class="kpi-grid" style="margin-bottom: 24px;">
+          <div class="kpi-card kpi-green">
+            <div class="kpi-label">FATURAMENTO NO PERÍODO</div>
+            <div class="kpi-value">R$ {{ Number(reportData.summary?.total_revenue || 0).toFixed(2) }}</div>
+          </div>
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-label">CONCLUÍDOS / TOTAL</div>
+            <div class="kpi-value">{{ reportData.summary?.completed_count || 0 }} / {{ reportData.summary?.total_appointments || 0 }}</div>
+          </div>
+          <div class="kpi-card kpi-teal">
+            <div class="kpi-label">TICKET MÉDIO</div>
+            <div class="kpi-value">R$ {{ Number(reportData.summary?.ticket_average || 0).toFixed(2) }}</div>
+          </div>
+          <div class="kpi-card kpi-orange">
+            <div class="kpi-label">CANCELADOS / NO-SHOW</div>
+            <div class="kpi-value">{{ reportData.summary?.cancelled_count || 0 }} / {{ reportData.summary?.no_show_count || 0 }}</div>
+          </div>
+        </div>
+
+        <div class="dash-panels">
+          <div class="dash-panel">
+            <div class="panel-header"><h3 class="panel-title">Por Especialista</h3></div>
+            <div v-if="!reportData.by_professional?.length" class="empty-state"><p>Sem dados no período.</p></div>
+            <table v-else class="rank-table">
+              <thead><tr><th>Especialista</th><th>Concluídos</th><th>Faturamento</th></tr></thead>
+              <tbody>
+                <tr v-for="item in reportData.by_professional" :key="item.name">
+                  <td>{{ item.name }}</td>
+                  <td class="rank-num">{{ item.completed_count }}</td>
+                  <td class="rank-rev">R$ {{ Number(item.revenue || 0).toFixed(2) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="dash-panel">
+            <div class="panel-header"><h3 class="panel-title">Por Serviço</h3></div>
+            <div v-if="!reportData.by_service?.length" class="empty-state"><p>Sem dados no período.</p></div>
+            <table v-else class="rank-table">
+              <thead><tr><th>Serviço</th><th>Concluídos</th><th>Faturamento</th></tr></thead>
+              <tbody>
+                <tr v-for="item in reportData.by_service" :key="item.name">
+                  <td>{{ item.name }}</td>
+                  <td class="rank-num">{{ item.completed_count }}</td>
+                  <td class="rank-rev">R$ {{ Number(item.revenue || 0).toFixed(2) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <!-- ===== CONFIG ===== -->
       <section v-if="activeTab === 'config'">
-        <div class="section-toolbar"><h2 class="section-title">Configurações</h2></div>
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Configurações</h2>
+            <p v-if="publicShopUrl" class="section-subtitle">Link da sua vitrine: <strong>{{ publicShopUrl }}</strong></p>
+          </div>
+          <div v-if="publicShopUrl" style="display:flex; gap:10px;">
+            <button type="button" @click="copyPublicShopLink" class="btn-page"><i class="fas fa-copy"></i> Copiar Link</button>
+            <button type="button" @click="openPublicShop" class="btn-page"><i class="fas fa-external-link-alt"></i> Abrir Vitrine</button>
+          </div>
+        </div>
         <div class="form-card">
           <div class="config-section" style="margin-bottom: 24px;">
             <h4 class="config-label">DADOS DO ESTABELECIMENTO</h4>
@@ -1122,6 +1300,28 @@ onUnmounted(() => {
                   <img v-if="shopConfig.logo_url" :src="shopConfig.logo_url" alt="Preview da logo" style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(212,175,55,0.35);">
                   <input type="file" @change="uploadLogo" accept="image/*" class="form-input" style="padding: 6px; flex: 1;">
                 </div>
+              </div>
+            </div>
+
+            <div class="form-grid-2" style="margin-top: 14px;">
+              <div class="form-group" style="flex: 1; margin-right: 12px;">
+                <label class="config-label" style="font-size: 0.7rem; color: #888; margin-bottom: 4px; display: block;">WHATSAPP DE CONTATO</label>
+                <input v-model="shopConfig.whatsapp_phone" type="text" placeholder="Ex: 11999998888" class="form-input">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label class="config-label" style="font-size: 0.7rem; color: #888; margin-bottom: 4px; display: block;">INSTAGRAM (@ OU URL)</label>
+                <input v-model="shopConfig.instagram_url" type="text" placeholder="Ex: @suabarbearia ou https://instagram.com/..." class="form-input">
+              </div>
+            </div>
+
+            <div class="form-grid-2" style="margin-top: 14px;">
+              <div class="form-group" style="flex: 1; margin-right: 12px;">
+                <label class="config-label" style="font-size: 0.7rem; color: #888; margin-bottom: 4px; display: block;">ENDEREÇO</label>
+                <input v-model="shopConfig.address" type="text" placeholder="Rua, número, bairro, cidade" class="form-input">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label class="config-label" style="font-size: 0.7rem; color: #888; margin-bottom: 4px; display: block;">GOOGLE MAPS (LINK)</label>
+                <input v-model="shopConfig.maps_url" type="text" placeholder="https://maps.google.com/..." class="form-input">
               </div>
             </div>
           </div>

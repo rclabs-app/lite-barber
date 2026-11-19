@@ -94,5 +94,16 @@ class AdminDashboardTest extends TestCase
             ->assertJsonPath('appointments_month', 2)
             ->assertJsonPath('waitlist_count', 1)
             ->assertJsonFragment(['name' => 'João']);
+
+        $this->getJson('/api/admin/reports?start_date='.$today->toDateString().'&end_date='.$today->toDateString())
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('summary.total_appointments', 2)
+            ->assertJsonPath('summary.completed_count', 1)
+            ->assertJsonPath('summary.no_show_count', 1)
+            ->assertJsonPath('summary.total_revenue', 50)
+            ->assertJsonPath('summary.ticket_average', 50)
+            ->assertJsonPath('by_professional.0.name', 'João')
+            ->assertJsonPath('by_service.0.name', 'Corte');
     }
 }

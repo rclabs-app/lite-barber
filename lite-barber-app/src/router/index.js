@@ -39,6 +39,11 @@ const router = createRouter({
       component: () => import('../views/SuccessView.vue')
     },
     {
+      path: '/:slug/appointment/:token',
+      name: 'appointment-manage',
+      component: () => import('../views/AppointmentManageView.vue')
+    },
+    {
       path: '/:slug/not-found',
       name: 'shop-not-found',
       component: () => import('../views/ShopNotFoundView.vue')

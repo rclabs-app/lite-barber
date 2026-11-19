@@ -10,6 +10,7 @@ const name = computed(() => route.query.name)
 const time = computed(() => route.query.time)
 const professional = computed(() => route.query.professional)
 const rawDate = computed(() => route.query.date)
+const cancelToken = computed(() => route.query.token)
 
 const formattedDate = computed(() => {
     if (!rawDate.value) return ''
@@ -18,6 +19,10 @@ const formattedDate = computed(() => {
 })
 
 const goHome = () => router.push({ name: 'shop', params: { slug: route.params.slug } })
+const goManageAppointment = () => router.push({
+    name: 'appointment-manage',
+    params: { slug: route.params.slug, token: cancelToken.value }
+})
 </script>
 
 <template>
@@ -40,6 +45,9 @@ const goHome = () => router.push({ name: 'shop', params: { slug: route.params.sl
                             <span>{{ formattedDate }}, {{ time }}</span>
                         </div>
                     </div>
+                    <button v-if="cancelToken" @click="goManageAppointment" class="btn-outline-luxury" style="margin-top: 20px; width: 100%;">
+                        <span>GERENCIAR / CANCELAR HORÁRIO</span>
+                    </button>
                 </div>
 
                 <div v-else class="details-box">

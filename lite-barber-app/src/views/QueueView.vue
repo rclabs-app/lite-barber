@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '../services/api'
 import { Toast } from '../utils/swal'
@@ -63,11 +63,20 @@ const joinQueue = async () => {
     }
 }
 
+let queueRefreshTimer = null
+
 onMounted(async () => {
     await loadShop()
     fetchWaitlistStatus()
     // Atualiza status localmente a cada 10 segundos
-    setInterval(fetchWaitlistStatus, 10000)
+    queueRefreshTimer = setInterval(fetchWaitlistStatus, 10000)
+})
+
+onUnmounted(() => {
+    if (queueRefreshTimer) {
+        clearInterval(queueRefreshTimer)
+        queueRefreshTimer = null
+    }
 })
 </script>
 
