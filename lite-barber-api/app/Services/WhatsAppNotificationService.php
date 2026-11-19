@@ -151,6 +151,39 @@ class WhatsAppNotificationService
     }
 
     /**
+     * Envia convite de avaliação pós-atendimento para o cliente.
+     */
+    public function sendReviewInvitation(Appointment $appointment): array
+    {
+        $appointment->loadMissing(['shop', 'professional', 'service']);
+
+        $shopName = $appointment->shop?->name ?? 'Lite Barber';
+        $clientName = $appointment->client_name;
+        $professionalName = $appointment->professional?->name ?? 'Profissional';
+        $serviceName = $appointment->service?->name ?? 'Serviço';
+
+        $frontendUrl = rtrim((string) config('app.frontend_url', 'http://localhost:5173'), '/');
+        $shopSlug = $appointment->shop?->slug ?? '';
+        $reviewToken = $appointment->review_token;
+        $reviewUrl = $reviewToken ? "{$frontendUrl}/{$shopSlug}/review/{$reviewToken}" : "{$frontendUrl}/{$shopSlug}";
+
+        $message = "⭐ *Como foi sua experiência na {$shopName}?*\n\n"
+            ."Olá, *{$clientName}*! Obrigado por sua visita para realizar *{$serviceName}* com *{$professionalName}*.\n\n"
+            ."Sua avaliação é muito importante para nós! Poderia nos avaliar em menos de 1 minuto no link abaixo?\n"
+            ."{$reviewUrl}\n\n"
+            .'Agradecemos muito pela sua preferência e feedback!';
+
+        $phone = (string) $appointment->client_phone;
+        $whatsappUrl = $this->buildDirectWhatsAppUrl($phone, $message);
+        $dispatchResult = $this->dispatchViaEvolutionApi($phone, $message);
+
+        return array_merge($dispatchResult, [
+            'message' => $message,
+            'whatsapp_url' => $whatsappUrl,
+        ]);
+    }
+
+    /**
      * Dispara mensagem pela Evolution API se configurada no .env.
      */
     public function dispatchViaEvolutionApi(string $phone, string $message): array

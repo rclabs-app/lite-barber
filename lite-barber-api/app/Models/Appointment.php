@@ -24,7 +24,15 @@ class Appointment extends Model
             if (empty($appointment->cancel_token)) {
                 $appointment->cancel_token = (string) Str::uuid();
             }
+            if (empty($appointment->review_token)) {
+                $appointment->review_token = (string) Str::uuid();
+            }
         });
+    }
+
+    public function review()
+    {
+        return $this->hasOne(Review::class);
     }
 
     public function shop()

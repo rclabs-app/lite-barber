@@ -42,6 +42,7 @@ class AdminAppointmentController extends Controller
             'message' => 'Status atualizado',
             'appointment' => $result['appointment'],
             'waiting_clients' => $result['waiting_clients'],
+            'review_whatsapp_url' => $result['review_whatsapp_url'] ?? null,
         ]);
     }
 }

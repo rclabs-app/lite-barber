@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Appointment;
+use App\Models\BlockedSlot;
 use App\Models\Professional;
 use App\Models\Service;
 use App\Models\Shop;
@@ -61,6 +62,16 @@ class AppointmentService
 
         try {
             $appointment = DB::transaction(function () use ($shop, $professional, $service, $data, $scheduledAt, $endsAt) {
+                $conflictBlocked = BlockedSlot::where('shop_id', $shop->id)
+                    ->where('professional_id', $professional->id)
+                    ->where('starts_at', '<', $endsAt)
+                    ->where('ends_at', '>', $scheduledAt)
+                    ->exists();
+
+                if ($conflictBlocked) {
+                    throw new HttpException(409, 'O profissional possui um bloqueio de horário neste intervalo.');
+                }
+
                 $conflict = Appointment::where('shop_id', $shop->id)
                     ->where('professional_id', $professional->id)
                     ->whereIn('status', ['scheduled', 'confirmed', 'in_progress'])
@@ -103,7 +114,7 @@ class AppointmentService
             ->where('is_active', true)
             ->findOrFail($professionalId);
 
-        return Appointment::where('shop_id', $shop->id)
+        $appointments = Appointment::where('shop_id', $shop->id)
             ->where('professional_id', $professional->id)
             ->whereDate('scheduled_at', $date)
             ->whereIn('status', ['scheduled', 'confirmed', 'in_progress', 'completed'])
@@ -112,6 +123,17 @@ class AppointmentService
                 'scheduled_at' => $appointment->scheduled_at->format('Y-m-d H:i:s'),
                 'ends_at' => $appointment->ends_at->format('Y-m-d H:i:s'),
             ]);
+
+        $blocked = BlockedSlot::where('shop_id', $shop->id)
+            ->where('professional_id', $professional->id)
+            ->whereDate('starts_at', $date)
+            ->get(['starts_at', 'ends_at'])
+            ->map(fn ($slot) => [
+                'scheduled_at' => $slot->starts_at->format('Y-m-d H:i:s'),
+                'ends_at' => $slot->ends_at->format('Y-m-d H:i:s'),
+            ]);
+
+        return $appointments->concat($blocked)->values();
     }
 
     public function updateStatus(int $shopId, int $appointmentId, string $nextStatus, ?string $cancelReason = null, ?int $userId = null): array
@@ -153,6 +175,12 @@ class AppointmentService
         );
 
         $waitingClients = [];
+        $reviewInvitation = null;
+
+        if ($nextStatus === 'completed') {
+            $reviewInvitation = $this->whatsAppNotificationService->sendReviewInvitation($appointment);
+        }
+
         if ($nextStatus === 'cancelled') {
             $this->whatsAppNotificationService->sendCancellationNotice($appointment, 'admin', $cancelReason);
 
@@ -169,6 +197,7 @@ class AppointmentService
         return [
             'appointment' => $appointment,
             'waiting_clients' => $waitingClients,
+            'review_whatsapp_url' => $reviewInvitation['whatsapp_url'] ?? null,
         ];
     }
 
@@ -216,6 +245,7 @@ class AppointmentService
         return [
             'appointment' => $appointment,
             'waiting_clients' => $waitingClients,
+            'review_whatsapp_url' => $reviewInvitation['whatsapp_url'] ?? null,
         ];
     }
 

@@ -1,15 +1,34 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 import { usePublicShop } from '../composables/usePublicShop'
 import { t } from '../utils/i18n'
 
 const router = useRouter()
 const { shop, loading, slug, loadShop } = usePublicShop()
+const reviewStats = ref({ average_rating: 4.9, total_reviews: 0 })
+const customerReviews = ref([])
+
+const loadReviews = async () => {
+  if (!slug.value) return
+  try {
+    const { data } = await axios.get(`/api/shops/${encodeURIComponent(slug.value)}/reviews`)
+    if (data?.stats) {
+      reviewStats.value = data.stats
+    }
+    if (Array.isArray(data?.reviews)) {
+      customerReviews.value = data.reviews
+    }
+  } catch (err) {
+    console.error('Erro ao carregar avaliações:', err)
+  }
+}
 
 onMounted(() => {
   if (slug.value) {
     loadShop()
+    loadReviews()
   }
 })
 
@@ -108,8 +127,8 @@ const mapsUrl = computed(() => {
             
             <div class="hero-stats-luxury">
                 <div class="l-stat">
-                    <span class="val">4.9</span>
-                    <span class="lab">{{ t(shop.locale, 'rating') }}</span>
+                    <span class="val">{{ reviewStats.total_reviews > 0 ? reviewStats.average_rating : '5.0' }}</span>
+                    <span class="lab">{{ reviewStats.total_reviews > 0 ? `${reviewStats.total_reviews} avaliações` : t(shop.locale, 'rating') }}</span>
                 </div>
                 <div class="l-stat">
                     <span class="val">10y</span>
@@ -133,6 +152,36 @@ const mapsUrl = computed(() => {
                     <i class="fas fa-fingerprint"></i>
                     <span>{{ t(shop.locale, 'login') }}</span>
                 </button>
+            </div>
+
+            <!-- Seção de Avaliações / Prova Social -->
+            <div v-if="customerReviews.length > 0" style="margin-top: 40px; width: 100%; max-width: 560px; margin-left: auto; margin-right: auto; text-align: left;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                    <span style="font-size: 0.8rem; font-weight: 700; color: var(--gold); letter-spacing: 2px; text-transform: uppercase;">
+                        O QUE NOSSOS CLIENTES DIZEM
+                    </span>
+                    <span style="font-size: 0.85rem; color: #f5b301;">
+                        ★ {{ reviewStats.average_rating }}
+                    </span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div
+                        v-for="rev in customerReviews.slice(0, 3)"
+                        :key="rev.id"
+                        style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px 16px;"
+                    >
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <strong style="color: #fff; font-size: 0.9rem;">{{ rev.client_name }}</strong>
+                            <span style="color: #f5b301; font-size: 0.85rem;">{{ '★'.repeat(rev.rating) }}</span>
+                        </div>
+                        <p v-if="rev.comment" style="color: #bbb; font-size: 0.82rem; margin: 0; line-height: 1.4; font-style: italic;">
+                            "{{ rev.comment }}"
+                        </p>
+                        <div style="margin-top: 6px; font-size: 0.72rem; color: #777;">
+                            {{ rev.service?.name }} com {{ rev.professional?.name }}
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 </template>

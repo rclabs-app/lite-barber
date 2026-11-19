@@ -1,13 +1,16 @@
 <?php
 
 use App\Http\Controllers\AdminAppointmentController;
+use App\Http\Controllers\AdminBlockedSlotController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminProfessionalController;
+use App\Http\Controllers\AdminReviewController;
 use App\Http\Controllers\AdminServiceController;
 use App\Http\Controllers\AdminShopController;
 use App\Http\Controllers\AdminWaitlistController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PublicAppointmentController;
+use App\Http\Controllers\PublicReviewController;
 use App\Http\Controllers\PublicShopController;
 use App\Http\Controllers\PublicWaitlistController;
 use Illuminate\Support\Facades\Route;
@@ -19,13 +22,16 @@ Route::middleware('throttle:public-read')->group(function () {
     Route::get('/shops/{slug}/professionals', [PublicShopController::class, 'professionals']);
     Route::get('/shops/{slug}/appointments/busy', [PublicAppointmentController::class, 'getBusySlots']);
     Route::get('/shops/{slug}/waitlist', [PublicWaitlistController::class, 'status']);
+    Route::get('/shops/{slug}/reviews', [PublicReviewController::class, 'index']);
     Route::get('/appointments/{token}', [PublicAppointmentController::class, 'showByToken']);
+    Route::get('/reviews/{token}', [PublicReviewController::class, 'showByToken']);
 });
 
 Route::middleware('throttle:public-write')->group(function () {
     Route::post('/shops/{slug}/appointments', [PublicAppointmentController::class, 'store']);
     Route::post('/shops/{slug}/waitlist', [PublicWaitlistController::class, 'store']);
     Route::post('/appointments/{token}/cancel', [PublicAppointmentController::class, 'cancelByToken']);
+    Route::post('/reviews/{token}', [PublicReviewController::class, 'store']);
 });
 
 // Authentication Endpoints
@@ -69,4 +75,13 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::post('/admin/professionals', [AdminProfessionalController::class, 'store']);
     Route::put('/admin/professionals/{id}', [AdminProfessionalController::class, 'update']);
     Route::delete('/admin/professionals/{id}', [AdminProfessionalController::class, 'destroy']);
+
+    // Admin Blocked Slots (Pausas e Bloqueios)
+    Route::get('/admin/blocked-slots', [AdminBlockedSlotController::class, 'index']);
+    Route::post('/admin/blocked-slots', [AdminBlockedSlotController::class, 'store']);
+    Route::delete('/admin/blocked-slots/{id}', [AdminBlockedSlotController::class, 'destroy']);
+
+    // Admin Reviews (Moderação de Avaliações)
+    Route::get('/admin/reviews', [AdminReviewController::class, 'index']);
+    Route::patch('/admin/reviews/{id}/toggle-approval', [AdminReviewController::class, 'toggleApproval']);
 });

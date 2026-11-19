@@ -23,4 +23,14 @@ class Shop extends Model
     {
         return $this->hasMany(Professional::class);
     }
+
+    public function blockedSlots()
+    {
+        return $this->hasMany(BlockedSlot::class);
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
 }

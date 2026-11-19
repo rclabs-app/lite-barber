@@ -81,6 +81,8 @@ const navItems = [
   { key: 'dashboard', icon: 'fas fa-home', label: 'Dashboard' },
   { key: 'agenda', icon: 'fas fa-calendar-alt', label: 'Agenda' },
   { key: 'fila', icon: 'fas fa-hourglass-half', label: 'Lista de Espera' },
+  { key: 'bloqueios', icon: 'fas fa-ban', label: 'Bloqueios' },
+  { key: 'avaliacoes', icon: 'fas fa-star', label: 'Avaliações' },
   { key: 'services', icon: 'fas fa-cut', label: 'Serviços' },
   { key: 'especialistas', icon: 'fas fa-user-tie', label: 'Especialistas' },
   { key: 'relatorios', icon: 'fas fa-chart-bar', label: 'Relatórios' },
@@ -488,6 +490,77 @@ const deleteProfessional = async (id) => {
   catch(err) { Toast.fire({ icon: 'error', title: 'Erro ao excluir' }) }
 }
 
+// ===== BLOQUEIOS DE HORÁRIO =====
+const blockedSlots = ref([])
+const newBlockedSlot = ref({ professional_id: '', starts_at: '', ends_at: '', reason: '' })
+
+const fetchBlockedSlots = async () => {
+  try {
+    const { data } = await axios.get('/api/admin/blocked-slots')
+    blockedSlots.value = data
+  } catch(err) {
+    console.error('Erro ao buscar bloqueios:', err)
+  }
+}
+
+const addBlockedSlot = async () => {
+  if (!newBlockedSlot.value.professional_id || !newBlockedSlot.value.starts_at || !newBlockedSlot.value.ends_at) {
+    Toast.fire({ icon: 'warning', title: 'Preencha o especialista e os horários de início e fim.' })
+    return
+  }
+  try {
+    await axios.post('/api/admin/blocked-slots', newBlockedSlot.value)
+    newBlockedSlot.value = { professional_id: '', starts_at: '', ends_at: '', reason: '' }
+    fetchBlockedSlots()
+    Toast.fire({ icon: 'success', title: 'Bloqueio cadastrado com sucesso!' })
+  } catch(err) {
+    Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Erro ao criar bloqueio.' })
+  }
+}
+
+const removeBlockedSlot = async (id) => {
+  const r = await LuxurySwal.fire({
+    title: 'Remover bloqueio?',
+    text: 'O horário voltará a ficar disponível para agendamento.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sim, liberar',
+    cancelButtonText: 'Cancelar'
+  })
+  if (!r.isConfirmed) return
+  try {
+    await axios.delete(`/api/admin/blocked-slots/${id}`)
+    fetchBlockedSlots()
+    Toast.fire({ icon: 'success', title: 'Bloqueio removido com sucesso!' })
+  } catch(err) {
+    Toast.fire({ icon: 'error', title: 'Erro ao remover bloqueio.' })
+  }
+}
+
+// ===== AVALIAÇÕES =====
+const reviewsList = ref([])
+const reviewsStats = ref({ total: 0, average: 0, approved: 0 })
+
+const fetchAdminReviews = async () => {
+  try {
+    const { data } = await axios.get('/api/admin/reviews')
+    reviewsList.value = data.reviews?.data || data.reviews || []
+    reviewsStats.value = data.stats || { total: 0, average: 0, approved: 0 }
+  } catch(err) {
+    console.error('Erro ao buscar avaliações:', err)
+  }
+}
+
+const toggleReviewApproval = async (id) => {
+  try {
+    const { data } = await axios.patch(`/api/admin/reviews/${id}/toggle-approval`)
+    fetchAdminReviews()
+    Toast.fire({ icon: 'success', title: data.message || 'Status atualizado' })
+  } catch(err) {
+    Toast.fire({ icon: 'error', title: 'Erro ao alterar aprovação.' })
+  }
+}
+
 const setThemeMode = (mode) => {
     shopConfig.value.theme_mode = mode;
     if (mode === 'dark') {
@@ -720,6 +793,13 @@ const navigate = (key) => {
   }
   if (key === 'config') {
     fetchAuditLogs()
+  }
+  if (key === 'bloqueios') {
+    fetchBlockedSlots()
+    fetchProfessionals()
+  }
+  if (key === 'avaliacoes') {
+    fetchAdminReviews()
   }
 }
 
@@ -1173,6 +1253,126 @@ onUnmounted(() => {
           <button :disabled="waitlistPagination.current_page === 1" @click="fetchWaitlist(waitlistPagination.current_page-1)" class="btn-page">« Anterior</button>
           <span class="page-info">Página {{ waitlistPagination.current_page }} de {{ waitlistPagination.last_page }}</span>
           <button :disabled="waitlistPagination.current_page === waitlistPagination.last_page" @click="fetchWaitlist(waitlistPagination.current_page+1)" class="btn-page">Próxima »</button>
+        </div>
+      </section>
+
+      <!-- ===== BLOQUEIOS DE HORÁRIO ===== -->
+      <section v-if="activeTab === 'bloqueios'">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Bloqueios &amp; Pausas de Especialistas</h2>
+            <p class="section-subtitle">Bloqueie horários específicos para folgas, pausas médicas ou imprevistos</p>
+          </div>
+          <button type="button" @click="fetchBlockedSlots" class="btn-page" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
+        </div>
+
+        <form @submit.prevent="addBlockedSlot" class="form-card">
+          <h3 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--gold);">NOVO BLOQUEIO DE HORÁRIO</h3>
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label">Especialista *</label>
+              <select v-model="newBlockedSlot.professional_id" required class="form-input">
+                <option value="" disabled>Selecione o especialista</option>
+                <option v-for="p in professionals" :key="p.id" :value="p.id">{{ p.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Motivo (opcional)</label>
+              <input v-model="newBlockedSlot.reason" type="text" placeholder="Ex: Consulta médica, Almoço estendido" class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Data e Hora Inicial *</label>
+              <input v-model="newBlockedSlot.starts_at" type="datetime-local" required class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Data e Hora Final *</label>
+              <input v-model="newBlockedSlot.ends_at" type="datetime-local" required class="form-input">
+            </div>
+          </div>
+          <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
+            <button type="submit" class="btn-primary">BLOQUEAR HORÁRIO</button>
+          </div>
+        </form>
+
+        <div class="list-items" style="margin-top: 20px;">
+          <div v-for="b in blockedSlots" :key="b.id" class="list-item">
+            <div class="list-item-info">
+              <strong class="list-item-name" style="color: #ef4444;">
+                <i class="fas fa-ban"></i> {{ b.professional?.name || 'Especialista' }}
+              </strong>
+              <div class="list-item-meta">
+                <span><i class="far fa-calendar-alt"></i> {{ new Date(b.starts_at).toLocaleString('pt-BR') }} até {{ new Date(b.ends_at).toLocaleString('pt-BR') }}</span>
+                <span v-if="b.reason"><i class="fas fa-info-circle"></i> {{ b.reason }}</span>
+              </div>
+            </div>
+            <div class="list-item-actions">
+              <button @click="removeBlockedSlot(b.id)" class="btn-link-red">REMOVER BLOQUEIO</button>
+            </div>
+          </div>
+          <div v-if="blockedSlots.length === 0" class="empty-state">
+            <i class="fas fa-calendar-check"></i>
+            <p>Nenhum bloqueio de horário ativo no momento.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== AVALIAÇÕES ===== -->
+      <section v-if="activeTab === 'avaliacoes'">
+        <div class="section-toolbar">
+          <div>
+            <h2 class="section-title">Avaliações &amp; Satisfação dos Clientes</h2>
+            <p class="section-subtitle">Acompanhe a reputação da barbearia e gerencie o feedback recebido</p>
+          </div>
+          <button type="button" @click="fetchAdminReviews" class="btn-page" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
+        </div>
+
+        <div class="kpi-grid" style="margin-bottom: 24px;">
+          <div class="kpi-card kpi-gold">
+            <div class="kpi-label">NOTA MÉDIA</div>
+            <div class="kpi-value">★ {{ reviewsStats.average }}</div>
+            <div class="kpi-sub">de 5.0 estrelas</div>
+          </div>
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-label">TOTAL DE AVALIAÇÕES</div>
+            <div class="kpi-value">{{ reviewsStats.total }}</div>
+            <div class="kpi-sub">feedbacks recebidos</div>
+          </div>
+          <div class="kpi-card kpi-green">
+            <div class="kpi-label">AVALIAÇÕES PÚBLICAS</div>
+            <div class="kpi-value">{{ reviewsStats.approved }}</div>
+            <div class="kpi-sub">exibidas na página inicial</div>
+          </div>
+        </div>
+
+        <div class="list-items">
+          <div v-for="rev in reviewsList" :key="rev.id" class="list-item" style="align-items: flex-start;">
+            <div class="list-item-info">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                <strong class="list-item-name">{{ rev.client_name }}</strong>
+                <span style="color: #f5b301; font-size: 0.95rem;">{{ '★'.repeat(rev.rating) }}</span>
+                <span :class="rev.is_approved ? 'badge-confirmed' : 'badge-cancelled'" style="font-size: 0.7rem; padding: 2px 6px; border-radius: 4px;">
+                  {{ rev.is_approved ? 'Visível' : 'Oculto' }}
+                </span>
+              </div>
+              <p v-if="rev.comment" style="margin: 6px 0; color: #ddd; font-size: 0.88rem; font-style: italic;">
+                "{{ rev.comment }}"
+              </p>
+              <div class="list-item-meta">
+                <span><i class="fas fa-cut"></i> {{ rev.service?.name }}</span>
+                <span><i class="fas fa-user-tie"></i> {{ rev.professional?.name }}</span>
+                <span><i class="far fa-clock"></i> {{ new Date(rev.created_at).toLocaleDateString('pt-BR') }}</span>
+              </div>
+            </div>
+            <div class="list-item-actions" style="margin-top: 4px;">
+              <button @click="toggleReviewApproval(rev.id)" :class="rev.is_approved ? 'btn-link-red' : 'btn-link-gold'">
+                {{ rev.is_approved ? 'OCULTAR' : 'APROVAR' }}
+              </button>
+            </div>
+          </div>
+          <div v-if="reviewsList.length === 0" class="empty-state">
+            <i class="fas fa-star"></i>
+            <p>Nenhuma avaliação de cliente recebida ainda.</p>
+          </div>
         </div>
       </section>
 

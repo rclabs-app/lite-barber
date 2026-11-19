@@ -44,6 +44,11 @@ const router = createRouter({
       component: () => import('../views/AppointmentManageView.vue')
     },
     {
+      path: '/:slug/review/:token',
+      name: 'review',
+      component: () => import('../views/ReviewView.vue')
+    },
+    {
       path: '/:slug/not-found',
       name: 'shop-not-found',
       component: () => import('../views/ShopNotFoundView.vue')

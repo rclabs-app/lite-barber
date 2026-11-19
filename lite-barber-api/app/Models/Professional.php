@@ -15,4 +15,14 @@ class Professional extends Model
         'specialties' => 'array',
         'is_active' => 'boolean',
     ];
+
+    public function blockedSlots()
+    {
+        return $this->hasMany(BlockedSlot::class);
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
 }

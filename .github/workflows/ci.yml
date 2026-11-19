@@ -34,11 +34,8 @@ jobs:
           php artisan key:generate
           php artisan config:clear
 
-      - name: Run PHPUnit
-        run: php artisan test
-
-      - name: Check PHP formatting
-        run: vendor/bin/pint --test
+      - name: Run checks and tests
+        run: composer check
 
   frontend:
     name: Vue frontend build
