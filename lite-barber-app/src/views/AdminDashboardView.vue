@@ -425,6 +425,9 @@ const notifyWaitlistClient = async (id) => {
     fetchWaitlist(waitlistPagination.value.current_page)
     fetchDashboardMetrics()
     Toast.fire({ icon: 'success', title: 'Marcado como notificado' })
+    if (data?.whatsapp_url) {
+      window.open(data.whatsapp_url, '_blank')
+    }
   }
   catch(err) { Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Erro ao notificar' }) }
 }
@@ -462,7 +465,7 @@ const updateStatus = async (id, status) => {
     Toast.fire({ icon: 'success', title: `Status: ${statusMap[status]}` })
     if (status === 'cancelled' && data.waiting_clients?.length > 0) {
       waitlistAlert.value = data.waiting_clients
-      LuxurySwal.fire({ title: `⚠️ ${data.waiting_clients.length} cliente(s) aguardam este horário!`, html: data.waiting_clients.map(c => `<strong>#${c.position || 1} ${c.client_name}</strong> — <a href="https://wa.me/55${(c.client_phone || '').replace(/\D/g,'')}" target="_blank" style="color:#25D366">${c.client_phone || 'Sem telefone'}</a>`).join('<br>'), icon: 'info', confirmButtonText: 'Ver Lista de Espera', showCancelButton: true, cancelButtonText: 'Fechar' }).then(r => { if (r.isConfirmed) { activeTab.value = 'fila'; sidebarOpen.value = false } })
+      LuxurySwal.fire({ title: `⚠️ ${data.waiting_clients.length} cliente(s) aguardam este horário!`, html: data.waiting_clients.map(c => `<strong>#${c.position || 1} ${c.client_name}</strong> — <a href="${c.whatsapp_url || ('https://wa.me/55' + (c.client_phone || '').replace(/\D/g,''))}" target="_blank" style="color:#25D366; font-weight:600;"><i class="fab fa-whatsapp"></i> Chamar no WhatsApp (${c.client_phone || 'Sem fone'})</a>`).join('<br><br>'), icon: 'info', confirmButtonText: 'Ver Lista de Espera', showCancelButton: true, cancelButtonText: 'Fechar' }).then(r => { if (r.isConfirmed) { activeTab.value = 'fila'; sidebarOpen.value = false } })
     }
   } catch(err) { Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Erro ao atualizar status' }) }
 }

@@ -17,7 +17,8 @@ class AppointmentService
 {
     public function __construct(
         private readonly WaitlistService $waitlistService,
-        private readonly AuditLogService $auditLogService
+        private readonly AuditLogService $auditLogService,
+        private readonly WhatsAppNotificationService $whatsAppNotificationService
     ) {}
 
     public function listForAdmin(int $shopId, array $filters, int $perPage = 10): LengthAwarePaginator
@@ -59,7 +60,7 @@ class AppointmentService
         }
 
         try {
-            return DB::transaction(function () use ($shop, $professional, $service, $data, $scheduledAt, $endsAt) {
+            $appointment = DB::transaction(function () use ($shop, $professional, $service, $data, $scheduledAt, $endsAt) {
                 $conflict = Appointment::where('shop_id', $shop->id)
                     ->where('professional_id', $professional->id)
                     ->whereIn('status', ['scheduled', 'confirmed', 'in_progress'])
@@ -85,6 +86,12 @@ class AppointmentService
                     'status' => 'scheduled',
                 ]);
             });
+
+            $notification = $this->whatsAppNotificationService->sendBookingConfirmation($appointment);
+            $appointment->setAttribute('whatsapp_url', $notification['whatsapp_url'] ?? null);
+            $appointment->setAttribute('notification_sent', $notification['sent'] ?? false);
+
+            return $appointment;
         } catch (UniqueConstraintViolationException) {
             throw new HttpException(409, 'O horário solicitado já foi preenchido por outro cliente.');
         }
@@ -147,6 +154,8 @@ class AppointmentService
 
         $waitingClients = [];
         if ($nextStatus === 'cancelled') {
+            $this->whatsAppNotificationService->sendCancellationNotice($appointment, 'admin', $cancelReason);
+
             $date = date('Y-m-d', strtotime((string) $appointment->scheduled_at));
             $time = date('H:i', strtotime((string) $appointment->scheduled_at));
             $waitingClients = $this->waitlistService->findMatchingWaitingClients(
@@ -192,6 +201,8 @@ class AppointmentService
             (int) $appointment->id,
             ['client_name' => $appointment->client_name, 'cancel_reason' => $cancelReason]
         );
+
+        $this->whatsAppNotificationService->sendCancellationNotice($appointment, 'client', $cancelReason);
 
         $date = date('Y-m-d', strtotime((string) $appointment->scheduled_at));
         $time = date('H:i', strtotime((string) $appointment->scheduled_at));

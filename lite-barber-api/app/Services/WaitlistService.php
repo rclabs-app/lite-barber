@@ -12,6 +12,10 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class WaitlistService
 {
+    public function __construct(
+        private readonly WhatsAppNotificationService $whatsAppNotificationService
+    ) {}
+
     public function listForShop(int $shopId, int $perPage = 20): LengthAwarePaginator
     {
         $waitingIds = Waitlist::where('shop_id', $shopId)
@@ -122,6 +126,10 @@ class WaitlistService
         $entry->notified_at = now();
         $entry->save();
 
+        $notification = $this->whatsAppNotificationService->sendWaitlistNotification($entry);
+        $entry->setAttribute('whatsapp_url', $notification['whatsapp_url'] ?? null);
+        $entry->setAttribute('notification_sent', $notification['sent'] ?? false);
+
         return $entry;
     }
 
@@ -169,8 +177,16 @@ class WaitlistService
             ->orderBy('id', 'asc')
             ->get()
             ->values()
-            ->map(function (Waitlist $entry, int $index) {
+            ->map(function (Waitlist $entry, int $index) use ($date, $shortTime) {
                 $entry->setAttribute('position', $index + 1);
+
+                $formattedDate = date('d/m/Y', strtotime($date));
+                $message = "Olá, *{$entry->client_name}*! Uma vaga acabou de abrir na barbearia para o dia {$formattedDate} às {$shortTime}. Gostaria de confirmar seu horário?";
+                $whatsappUrl = $this->whatsAppNotificationService->buildDirectWhatsAppUrl(
+                    (string) $entry->client_phone,
+                    $message
+                );
+                $entry->setAttribute('whatsapp_url', $whatsappUrl);
 
                 return $entry;
             })

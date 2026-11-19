@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Professional;
+use App\Models\Service;
 use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -50,6 +52,32 @@ class AuthService
             ]);
 
             $shop->update(['owner_id' => $user->id]);
+
+            Professional::create([
+                'shop_id' => $shop->id,
+                'name' => $data['admin_name'],
+                'is_active' => true,
+            ]);
+
+            Service::create([
+                'shop_id' => $shop->id,
+                'name' => 'Corte Tradicional',
+                'description' => 'Corte masculino completo e acabamento.',
+                'price' => 40.00,
+                'duration_minutes' => 30,
+                'display_order' => 1,
+                'is_active' => true,
+            ]);
+
+            Service::create([
+                'shop_id' => $shop->id,
+                'name' => 'Barba Completa',
+                'description' => 'Alinhamento e desenho de barba com toalha quente.',
+                'price' => 30.00,
+                'duration_minutes' => 20,
+                'display_order' => 2,
+                'is_active' => true,
+            ]);
 
             return [
                 'token' => $user->createToken('admin_panel')->plainTextToken,

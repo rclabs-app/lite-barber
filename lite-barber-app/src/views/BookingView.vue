@@ -306,7 +306,8 @@ const confirmBooking = async () => {
                 name: name.value,
                 date: selectedDate.value,
                 time: selectedTime.value,
-                token: data.appointment?.cancel_token || undefined
+                token: data.appointment?.cancel_token || undefined,
+                whatsapp_url: data.whatsapp_url || undefined
             }
         })
     } catch (err) {

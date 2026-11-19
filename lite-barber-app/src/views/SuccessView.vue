@@ -11,6 +11,7 @@ const time = computed(() => route.query.time)
 const professional = computed(() => route.query.professional)
 const rawDate = computed(() => route.query.date)
 const cancelToken = computed(() => route.query.token)
+const whatsappUrl = computed(() => route.query.whatsapp_url)
 
 const formattedDate = computed(() => {
     if (!rawDate.value) return ''
@@ -45,7 +46,11 @@ const goManageAppointment = () => router.push({
                             <span>{{ formattedDate }}, {{ time }}</span>
                         </div>
                     </div>
-                    <button v-if="cancelToken" @click="goManageAppointment" class="btn-outline-luxury" style="margin-top: 20px; width: 100%;">
+                    <a v-if="whatsappUrl" :href="whatsappUrl" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-luxury">
+                        <i class="fab fa-whatsapp"></i>
+                        <span>ABRIR CONFIRMAÇÃO NO WHATSAPP</span>
+                    </a>
+                    <button v-if="cancelToken" @click="goManageAppointment" class="btn-outline-luxury" style="margin-top: 15px; width: 100%;">
                         <span>GERENCIAR / CANCELAR HORÁRIO</span>
                     </button>
                 </div>
@@ -143,6 +148,29 @@ const goManageAppointment = () => router.push({
 }
 .instruction {
     font-size: 0.8rem !important;
+}
+
+.btn-whatsapp-luxury {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 15px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    background: #25D366;
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+.btn-whatsapp-luxury:hover {
+    background: #1ebc57;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
 }
 
 @keyframes pulse-gold {

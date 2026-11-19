@@ -24,6 +24,21 @@ class AuthTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonStructure(['token', 'user', 'shop']);
 
+        $shopId = $register->json('shop.id');
+        $this->assertDatabaseHas('professionals', [
+            'shop_id' => $shopId,
+            'name' => 'Administrador',
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('services', [
+            'shop_id' => $shopId,
+            'name' => 'Corte Tradicional',
+        ]);
+        $this->assertDatabaseHas('services', [
+            'shop_id' => $shopId,
+            'name' => 'Barba Completa',
+        ]);
+
         $login = $this->postJson('/api/auth/login', [
             'email' => 'admin@teste.com',
             'password' => 'senha123',

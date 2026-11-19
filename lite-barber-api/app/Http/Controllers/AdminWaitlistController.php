@@ -54,6 +54,7 @@ class AdminWaitlistController extends Controller
         return response()->json([
             'success' => true,
             'entry' => $entry,
+            'whatsapp_url' => $entry->whatsapp_url ?? null,
         ]);
     }
 

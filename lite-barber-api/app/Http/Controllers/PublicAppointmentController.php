@@ -32,6 +32,7 @@ class PublicAppointmentController extends Controller
             'success' => true,
             'message' => 'Agendamento efetuado com sucesso!',
             'appointment' => $appointment,
+            'whatsapp_url' => $appointment->whatsapp_url ?? null,
         ], 201);
     }
 
