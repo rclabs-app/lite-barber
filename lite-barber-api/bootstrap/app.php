@@ -43,7 +43,10 @@ return Application::configure(basePath: dirname(__DIR__))
             };
 
             $message = match ($status) {
-                401 => 'Não autenticado.',
+                401 => $exception instanceof AuthenticationException
+                    ? 'Não autenticado.'
+                    : ($exception->getMessage() ?: 'Não autenticado.'),
+                403 => $exception->getMessage() ?: 'Acesso negado.',
                 404 => 'Recurso não encontrado.',
                 409 => $exception->getMessage() ?: 'Conflito na operação.',
                 422 => $exception->getMessage() ?: 'Dados inválidos.',

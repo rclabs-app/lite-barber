@@ -2,49 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Shop;
-use App\Models\User;
+use App\Services\AuthService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly AuthService $authService
+    ) {}
+
     public function login(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
-
-        if (! $user || ! Hash::check($password = $request->password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Credenciais inválidas',
-            ], 401);
-        }
-
-        if (! $user->is_active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Usuário inativo.',
-            ], 403);
-        }
-
-        if (! in_array($user->role, ['owner', 'manager'], true) || ! $user->shop_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Usuário sem acesso administrativo.',
-            ], 403);
-        }
+        $result = $this->authService->loginAdmin($validated['email'], $validated['password']);
 
         return response()->json([
             'success' => true,
-            'token' => $user->createToken('admin_panel')->plainTextToken,
-            'user' => $user,
+            'token' => $result['token'],
+            'user' => $result['user'],
         ]);
     }
 
@@ -54,7 +34,7 @@ class AuthController extends Controller
             'slug' => Str::slug($request->input('slug', $request->input('shop_name'))),
         ]);
 
-        $request->validate([
+        $validated = $request->validate([
             'shop_name' => 'required|string|max:100',
             'slug' => 'required|string|max:100|unique:shops,slug',
             'admin_name' => 'required|string|max:255',
@@ -62,42 +42,14 @@ class AuthController extends Controller
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-        try {
-            DB::beginTransaction();
+        $result = $this->authService->registerShopAndOwner($validated);
 
-            $shop = Shop::create([
-                'name' => $request->shop_name,
-                'slug' => $request->slug,
-            ]);
-
-            $user = User::create([
-                'name' => $request->admin_name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'shop_id' => $shop->id,
-                'role' => 'owner',
-                'is_active' => true,
-            ]);
-
-            $shop->update(['owner_id' => $user->id]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'token' => $user->createToken('admin_panel')->plainTextToken,
-                'user' => $user,
-                'shop' => $shop,
-            ], 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao registrar estabelecimento.',
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'token' => $result['token'],
+            'user' => $result['user'],
+            'shop' => $result['shop'],
+        ], 201);
     }
 
     public function me(Request $request)
@@ -111,25 +63,18 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|unique:users,email,'.$user->id,
             'password' => 'nullable|string|min:6',
         ]);
 
-        $user->name = $request->name;
+        $updatedUser = $this->authService->updateProfile($user, $validated);
 
-        if ($request->filled('email')) {
-            $user->email = $request->email;
-        }
-
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
-        }
-
-        $user->save();
-
-        return response()->json(['message' => 'Perfil atualizado com sucesso', 'user' => $user]);
+        return response()->json([
+            'message' => 'Perfil atualizado com sucesso',
+            'user' => $updatedUser,
+        ]);
     }
 
     public function logout(Request $request)

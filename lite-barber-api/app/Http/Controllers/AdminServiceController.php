@@ -3,19 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Models\Service;
+use App\Services\ShopService;
 use Illuminate\Http\Request;
 
 class AdminServiceController extends Controller
 {
+    public function __construct(
+        private readonly ShopService $shopService
+    ) {}
+
     public function index(Request $request)
     {
-        // shop_id injetado pelo middleware tenant
-        return Service::where('shop_id', $request->get('shop_id'))->get();
+        $shopId = (int) ($request->user()?->shop_id ?? $request->get('shop_id'));
+
+        return Service::where('shop_id', $shopId)->get();
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $shopId = (int) ($request->user()?->shop_id ?? $request->get('shop_id'));
+
+        $validated = $request->validate([
             'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
@@ -24,14 +32,16 @@ class AdminServiceController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        $this->shopService->assertCanCreateService($shopId);
+
         $service = Service::create([
-            'shop_id' => $request->get('shop_id'),
-            'name' => $request->name,
-            'description' => $request->description,
-            'price' => $request->price,
-            'duration_minutes' => $request->duration_minutes,
-            'display_order' => $request->display_order ?? 0,
-            'is_active' => $request->is_active ?? true,
+            'shop_id' => $shopId,
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'price' => $validated['price'],
+            'duration_minutes' => $validated['duration_minutes'],
+            'display_order' => $validated['display_order'] ?? 0,
+            'is_active' => $validated['is_active'] ?? true,
         ]);
 
         return response()->json([
@@ -42,9 +52,10 @@ class AdminServiceController extends Controller
 
     public function update(Request $request, $id)
     {
-        $service = Service::where('shop_id', $request->get('shop_id'))->findOrFail($id);
+        $shopId = (int) ($request->user()?->shop_id ?? $request->get('shop_id'));
+        $service = Service::where('shop_id', $shopId)->findOrFail($id);
 
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'sometimes|string|max:100',
             'description' => 'sometimes|nullable|string|max:255',
             'price' => 'sometimes|numeric|min:0',
@@ -53,14 +64,15 @@ class AdminServiceController extends Controller
             'is_active' => 'sometimes|boolean',
         ]);
 
-        $service->update($request->all());
+        $service->update($validated);
 
         return response()->json($service);
     }
 
     public function destroy(Request $request, $id)
     {
-        $service = Service::where('shop_id', $request->get('shop_id'))->findOrFail($id);
+        $shopId = (int) ($request->user()?->shop_id ?? $request->get('shop_id'));
+        $service = Service::where('shop_id', $shopId)->findOrFail($id);
         $service->delete();
 
         return response()->json(null, 204);

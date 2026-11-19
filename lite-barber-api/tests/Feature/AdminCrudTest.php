@@ -183,4 +183,82 @@ class AdminCrudTest extends TestCase
                 ->etc()
             );
     }
+
+    public function test_plan_limits_and_social_maps_fields_are_enforced(): void
+    {
+        $shop = Shop::create([
+            'name' => 'Barbearia Lite',
+            'slug' => 'barbearia-lite',
+            'plan' => 'free',
+            'is_active' => true,
+        ]);
+
+        $admin = User::create([
+            'shop_id' => $shop->id,
+            'name' => 'Admin Lite',
+            'email' => 'admin-lite@teste.com',
+            'password' => bcrypt('senha123'),
+            'role' => 'owner',
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        for ($i = 1; $i <= 2; $i++) {
+            $this->postJson('/api/admin/professionals', [
+                'name' => "Profissional {$i}",
+            ])->assertCreated();
+        }
+
+        $this->postJson('/api/admin/professionals', [
+            'name' => 'Profissional Excedente',
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Limite do plano atingido: seu plano permite até 2 profissionais.');
+
+        for ($i = 1; $i <= 5; $i++) {
+            $this->postJson('/api/admin/services', [
+                'name' => "Serviço {$i}",
+                'price' => 40,
+                'duration_minutes' => 30,
+            ])->assertCreated();
+        }
+
+        $this->postJson('/api/admin/services', [
+            'name' => 'Serviço Excedente',
+            'price' => 40,
+            'duration_minutes' => 30,
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Limite do plano atingido: seu plano permite até 5 serviços.');
+
+        $shop->update(['plan' => 'pro']);
+
+        $this->postJson('/api/admin/professionals', [
+            'name' => 'Profissional Pro 3',
+        ])->assertCreated();
+
+        $this->postJson('/api/admin/services', [
+            'name' => 'Serviço Pro 6',
+            'price' => 55,
+            'duration_minutes' => 30,
+        ])->assertCreated();
+
+        $this->putJson('/api/admin/shop', [
+            'whatsapp_phone' => '11999998888',
+            'instagram_url' => '@barbearialite',
+            'address' => 'Av. Paulista, 1000',
+            'maps_url' => 'https://maps.google.com/?q=Av+Paulista+1000',
+        ])
+            ->assertOk()
+            ->assertJsonPath('whatsapp_phone', '11999998888')
+            ->assertJsonPath('instagram_url', '@barbearialite')
+            ->assertJsonPath('address', 'Av. Paulista, 1000')
+            ->assertJsonPath('maps_url', 'https://maps.google.com/?q=Av+Paulista+1000');
+
+        $this->getJson('/api/shops/barbearia-lite')
+            ->assertOk()
+            ->assertJsonPath('whatsapp_phone', '11999998888')
+            ->assertJsonPath('instagram_url', '@barbearialite');
+    }
 }

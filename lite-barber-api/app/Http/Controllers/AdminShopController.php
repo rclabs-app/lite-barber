@@ -2,35 +2,37 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Shop;
+use App\Services\ShopService;
 use Illuminate\Http\Request;
 
 class AdminShopController extends Controller
 {
+    public function __construct(
+        private readonly ShopService $shopService
+    ) {}
+
     public function show(Request $request)
     {
-        return Shop::findOrFail($request->user()?->shop_id ?? $request->get('shop_id'));
+        $shopId = (int) ($request->user()?->shop_id ?? $request->get('shop_id'));
+
+        return $this->shopService->findForTenant($shopId);
     }
 
     public function update(Request $request)
     {
-        $shop = Shop::findOrFail($request->user()?->shop_id ?? $request->get('shop_id'));
+        $shopId = (int) ($request->user()?->shop_id ?? $request->get('shop_id'));
+        $shop = $this->shopService->findForTenant($shopId);
 
-        foreach (['opening_time', 'closing_time', 'lunch_start', 'lunch_end'] as $timeField) {
-            if (! $request->exists($timeField)) {
-                continue;
-            }
+        $request->replace($this->shopService->normalizeTimeInputs($request->all()));
 
-            $value = $request->input($timeField);
-            if ($value === '' || $value === null) {
-                $request->merge([$timeField => null]);
-            } elseif (is_string($value) && preg_match('/^\d{2}:\d{2}:\d{2}$/', $value)) {
-                $request->merge([$timeField => substr($value, 0, 5)]);
-            }
-        }
-
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'sometimes|string|max:100',
+            'description' => 'nullable|string|max:500',
+            'phone' => 'nullable|string|max:20',
+            'whatsapp_phone' => 'nullable|string|max:30',
+            'instagram_url' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'maps_url' => 'nullable|string|max:500',
             'opening_time' => 'sometimes|required|date_format:H:i',
             'closing_time' => 'sometimes|required|date_format:H:i',
             'slot_duration' => 'sometimes|integer|min:10|max:180',
@@ -45,77 +47,18 @@ class AdminShopController extends Controller
             'theme_mode' => 'sometimes|string|in:dark,light-nude,light-wine',
         ]);
 
-        $openingRaw = $request->opening_time ?? $shop->opening_time;
-        $closingRaw = $request->closing_time ?? $shop->closing_time;
-        $opening = $openingRaw ? substr((string) $openingRaw, 0, 5) : null;
-        $closing = $closingRaw ? substr((string) $closingRaw, 0, 5) : null;
-
-        if ($opening && $closing && $closing <= $opening) {
-            return response()->json([
-                'success' => false,
-                'message' => 'O horário de fechamento deve ser posterior ao horário de abertura.',
-            ], 422);
-        }
-
-        $lunchStartRaw = $request->exists('lunch_start') ? $request->lunch_start : $shop->lunch_start;
-        $lunchEndRaw = $request->exists('lunch_end') ? $request->lunch_end : $shop->lunch_end;
-        $lunchStart = $lunchStartRaw ? substr((string) $lunchStartRaw, 0, 5) : null;
-        $lunchEnd = $lunchEndRaw ? substr((string) $lunchEndRaw, 0, 5) : null;
-
-        if (($lunchStart && ! $lunchEnd) || (! $lunchStart && $lunchEnd)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Informe o início e o término do horário de almoço.',
-            ], 422);
-        }
-
-        if ($lunchStart && $lunchEnd && $lunchEnd <= $lunchStart) {
-            return response()->json([
-                'success' => false,
-                'message' => 'O fim do intervalo deve ser posterior ao início.',
-            ], 422);
-        }
-
-        if ($lunchStart && $lunchEnd && $opening && $closing && ($lunchStart < $opening || $lunchEnd > $closing)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'O intervalo de almoço deve estar dentro do horário de funcionamento.',
-            ], 422);
-        }
-
-        $shop->update($request->only([
-            'name',
-            'opening_time',
-            'closing_time',
-            'slot_duration',
-            'lunch_start',
-            'lunch_end',
-            'working_days',
-            'unavailable_dates',
-            'is_active',
-            'theme_color',
-            'theme_mode',
-        ]));
-
-        return response()->json($shop);
+        return response()->json($this->shopService->updateConfiguration($shop, $validated));
     }
 
     public function uploadLogo(Request $request)
     {
-        $shop = Shop::findOrFail($request->user()?->shop_id ?? $request->get('shop_id'));
+        $shopId = (int) ($request->user()?->shop_id ?? $request->get('shop_id'));
+        $shop = $this->shopService->findForTenant($shopId);
 
         $request->validate([
-            'logo' => 'required|image|max:2048', // max 2MB
+            'logo' => 'required|image|max:2048',
         ]);
 
-        if ($request->hasFile('logo')) {
-            $path = $request->file('logo')->store('logos', 'public');
-            // Check if logo URL should include base API url or just relative.
-            // A relative path is fine since Laravel serves it from /storage/logos/
-            $shop->logo_url = '/storage/'.$path;
-            $shop->save();
-        }
-
-        return response()->json($shop);
+        return response()->json($this->shopService->uploadLogo($shop, $request->file('logo')));
     }
 }

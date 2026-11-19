@@ -2,57 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Professional;
-use App\Models\Service;
-use App\Models\Waitlist;
+use App\Services\WaitlistService;
 use Illuminate\Http\Request;
 
 class AdminWaitlistController extends Controller
 {
-    /**
-     * Lista as entradas de espera da barbearia, mais recentes primeiro.
-     */
+    public function __construct(
+        private readonly WaitlistService $waitlistService
+    ) {}
+
     public function index(Request $request)
     {
-        $shopId = $request->user()->shop_id;
-
-        $waitingIds = Waitlist::where('shop_id', $shopId)
-            ->where('status', 'waiting')
-            ->orderBy('desired_date', 'asc')
-            ->orderBy('desired_time', 'asc')
-            ->orderBy('created_at', 'asc')
-            ->orderBy('id', 'asc')
-            ->pluck('id')
-            ->values();
-
-        $positionMap = $waitingIds->flip()->map(fn ($index) => $index + 1);
-
-        $list = Waitlist::where('shop_id', $shopId)
-            ->with(['professional', 'service'])
-            ->whereIn('status', ['waiting', 'notified'])
-            ->orderBy('desired_date', 'asc')
-            ->orderBy('desired_time', 'asc')
-            ->orderBy('created_at', 'asc')
-            ->orderBy('id', 'asc')
-            ->paginate((int) $request->query('per_page', 20));
-
-        $list->getCollection()->transform(function (Waitlist $entry) use ($positionMap) {
-            $entry->setAttribute('position', $positionMap->get($entry->id));
-
-            return $entry;
-        });
+        $list = $this->waitlistService->listForShop(
+            (int) $request->user()->shop_id,
+            (int) $request->query('per_page', 20)
+        );
 
         return response()->json($list);
     }
 
-    /**
-     * Adiciona um cliente à lista de espera para um horário específico.
-     */
     public function store(Request $request)
     {
-        $shopId = $request->user()->shop_id;
-
-        $request->validate([
+        $validated = $request->validate([
             'client_name' => 'required|string|max:150',
             'client_phone' => 'required|string|max:20',
             'desired_date' => 'required|date|after_or_equal:today',
@@ -62,50 +33,23 @@ class AdminWaitlistController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
-        if ($request->professional_id && ! Professional::where('shop_id', $shopId)->whereKey($request->professional_id)->exists()) {
-            return response()->json(['success' => false, 'message' => 'Profissional não pertence a esta barbearia.'], 422);
-        }
-
-        if ($request->service_id && ! Service::where('shop_id', $shopId)->whereKey($request->service_id)->exists()) {
-            return response()->json(['success' => false, 'message' => 'Serviço não pertence a esta barbearia.'], 422);
-        }
-
-        $entry = Waitlist::create([
-            'shop_id' => $shopId,
-            'client_name' => $request->client_name,
-            'client_phone' => $request->client_phone,
-            'desired_date' => $request->desired_date,
-            'desired_time' => $request->desired_time,
-            'professional_id' => $request->professional_id,
-            'service_id' => $request->service_id,
-            'notes' => $request->notes,
-            'status' => 'waiting',
-        ]);
+        $entry = $this->waitlistService->createAdminEntry(
+            (int) $request->user()->shop_id,
+            $validated
+        );
 
         return response()->json([
             'success' => true,
-            'entry' => $entry->load(['professional', 'service']),
+            'entry' => $entry,
         ], 201);
     }
 
-    /**
-     * Marca como notificado (admin avisou o cliente manualmente via WhatsApp).
-     */
     public function markNotified(Request $request, $id)
     {
-        $shopId = $request->user()->shop_id;
-        $entry = Waitlist::where('shop_id', $shopId)->findOrFail($id);
-
-        if ($entry->status !== 'waiting') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Somente entradas aguardando podem ser notificadas.',
-            ], 422);
-        }
-
-        $entry->status = 'notified';
-        $entry->notified_at = now();
-        $entry->save();
+        $entry = $this->waitlistService->markNotified(
+            (int) $request->user()->shop_id,
+            (int) $id
+        );
 
         return response()->json([
             'success' => true,
@@ -113,23 +57,12 @@ class AdminWaitlistController extends Controller
         ]);
     }
 
-    /**
-     * Remove da lista de espera (cliente desistiu ou horário foi preenchido).
-     */
     public function destroy(Request $request, $id)
     {
-        $shopId = $request->user()->shop_id;
-        $entry = Waitlist::where('shop_id', $shopId)->findOrFail($id);
-
-        if ($entry->status === 'cancelled') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Esta entrada já foi removida.',
-            ], 422);
-        }
-
-        $entry->status = 'cancelled';
-        $entry->save();
+        $this->waitlistService->cancelEntry(
+            (int) $request->user()->shop_id,
+            (int) $id
+        );
 
         return response()->json([
             'success' => true,
@@ -137,45 +70,8 @@ class AdminWaitlistController extends Controller
         ]);
     }
 
-    /**
-     * Verifica se há alguém na lista de espera para um horário liberado.
-     * Chamado internamente quando um agendamento é cancelado.
-     */
     public static function checkForWaitingClients(int $shopId, string $date, string $time, ?int $professionalId = null): array
     {
-        $shortTime = substr($time, 0, 5);
-
-        $query = Waitlist::where('shop_id', $shopId)
-            ->where('status', 'waiting')
-            ->where(function ($q) use ($date, $shortTime) {
-                $q->where(function ($slotQuery) use ($date, $shortTime) {
-                    $slotQuery->whereDate('desired_date', $date)
-                        ->where(function ($timeQuery) use ($shortTime) {
-                            $timeQuery->whereIn('desired_time', [$shortTime, $shortTime.':00'])
-                                ->orWhereNull('desired_time');
-                        });
-                })->orWhere(function ($walkInQuery) {
-                    $walkInQuery->whereNull('desired_date')
-                        ->whereNull('desired_time');
-                });
-            });
-
-        if ($professionalId) {
-            $query->where(function ($q) use ($professionalId) {
-                $q->where('professional_id', $professionalId)->orWhereNull('professional_id');
-            });
-        }
-
-        return $query->with(['professional', 'service'])
-            ->orderBy('created_at', 'asc')
-            ->orderBy('id', 'asc')
-            ->get()
-            ->values()
-            ->map(function (Waitlist $entry, int $index) {
-                $entry->setAttribute('position', $index + 1);
-
-                return $entry;
-            })
-            ->toArray();
+        return app(WaitlistService::class)->findMatchingWaitingClients($shopId, $date, $time, $professionalId);
     }
 }
