@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import axios from '../services/api'
 import { LuxurySwal, Toast } from '../utils/swal'
 import { useAuthStore } from '../stores/auth'
+import { formatCurrency } from '../utils/i18n'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -40,11 +41,18 @@ const shopConfig = ref({
   theme_color: '#D4AF37',
   theme_mode: 'dark',
   logo_url: '',
+  currency: 'BRL',
+  locale: 'pt-BR',
+  timezone: 'America/Sao_Paulo',
 })
+
+const auditLogs = ref([])
+const formatShopCurrency = (val) => formatCurrency(val, shopConfig.value.currency, shopConfig.value.locale)
 
 const planLimits = computed(() => {
   const isPro = ['pro', 'premium'].includes(shopConfig.value.plan)
   return {
+    isPro,
     label: isPro ? 'Plano Pro' : 'Plano Lite',
     maxProfessionals: isPro ? 8 : 2,
     maxServices: isPro ? 20 : 5,
@@ -542,6 +550,31 @@ const normalizeShopConfig = (data = {}) => {
     theme_color: data.theme_color || '#D4AF37',
     theme_mode: data.theme_mode || 'dark',
     logo_url: data.logo_url || '',
+    currency: data.currency || 'BRL',
+    locale: data.locale || 'pt-BR',
+    timezone: data.timezone || 'America/Sao_Paulo',
+  }
+}
+
+const fetchAuditLogs = async () => {
+  try {
+    const { data } = await axios.get('/api/admin/audit-logs', { params: { limit: 20 } })
+    auditLogs.value = data.logs || []
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const changeShopPlan = async (targetPlan) => {
+  try {
+    const { data } = await axios.patch('/api/admin/shop/plan', { plan: targetPlan })
+    if (data.shop) {
+      shopConfig.value = normalizeShopConfig(data.shop)
+    }
+    fetchAuditLogs()
+    Toast.fire({ icon: 'success', title: `Plano alterado para ${targetPlan === 'pro' ? 'Plano Pro' : 'Plano Lite'}!` })
+  } catch (err) {
+    Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Erro ao alterar plano' })
   }
 }
 
@@ -579,6 +612,9 @@ const updateShopConfig = async () => {
       unavailable_dates: shopConfig.value.unavailable_dates || [],
       theme_color: shopConfig.value.theme_color,
       theme_mode: shopConfig.value.theme_mode,
+      currency: shopConfig.value.currency || 'BRL',
+      locale: shopConfig.value.locale || 'pt-BR',
+      timezone: shopConfig.value.timezone || 'America/Sao_Paulo',
     }
     const { data } = await axios.put('/api/admin/shop', payload)
     shopConfig.value = normalizeShopConfig(data)
@@ -586,6 +622,7 @@ const updateShopConfig = async () => {
     document.documentElement.style.setProperty('--accent', shopConfig.value.theme_color)
     applyTheme(shopConfig.value.theme_mode)
     if (data.name) shopName.value = data.name
+    fetchAuditLogs()
     Toast.fire({ icon: 'success', title: 'Configurações atualizadas!' })
   }
   catch(err) {
@@ -677,6 +714,9 @@ const navigate = (key) => {
   sidebarOpen.value = false
   if (key === 'relatorios') {
     fetchReports()
+  }
+  if (key === 'config') {
+    fetchAuditLogs()
   }
 }
 
@@ -784,11 +824,11 @@ onUnmounted(() => {
           </div>
           <div class="kpi-card kpi-green">
             <div class="kpi-label">RECEITA HOJE</div>
-            <div class="kpi-value">R$ {{ todayRevenue.toFixed(2) }}</div>
+            <div class="kpi-value">{{ formatShopCurrency(todayRevenue) }}</div>
           </div>
           <div class="kpi-card kpi-teal">
             <div class="kpi-label">TICKET MÉDIO</div>
-            <div class="kpi-value">R$ {{ ticketMedio.toFixed(2) }}</div>
+            <div class="kpi-value">{{ formatShopCurrency(ticketMedio) }}</div>
           </div>
           <div class="kpi-card kpi-purple" style="cursor:pointer" @click="navigate('fila')">
             <div class="kpi-label">LISTA DE ESPERA</div>
@@ -1375,7 +1415,68 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
-          <button @click="updateShopConfig" class="btn-primary" style="margin-top:30px;width:100%;">SALVAR CONFIGURAÇÕES</button>
+            <button @click="updateShopConfig" class="btn-primary" style="margin-top:30px;width:100%;">SALVAR CONFIGURAÇÕES</button>
+
+            <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.08);">
+              <h4 class="config-label">MEU PLANO &amp; ASSINATURA</h4>
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; background:rgba(255,255,255,0.02); border:1px solid rgba(212,175,55,0.25); border-radius:10px; padding:16px;">
+                <div>
+                  <strong style="color:var(--accent); font-size:1rem;">{{ planLimits.label }}</strong>
+                  <p style="font-size:0.8rem; color:#aaa; margin:4px 0 0;">
+                    Limites ativos: até {{ planLimits.maxProfessionals }} profissionais e {{ planLimits.maxServices }} serviços.
+                  </p>
+                </div>
+                <div>
+                  <button v-if="!planLimits.isPro" type="button" @click="changeShopPlan('pro')" class="btn-primary">FAZER UPGRADE PARA PRO</button>
+                  <button v-else type="button" @click="changeShopPlan('free')" class="btn-secondary"> MUDAR PARA PLANO LITE</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 28px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.08);">
+              <h4 class="config-label">INTERNACIONALIZAÇÃO (IDIOMA, MOEDA E FUSO HORÁRIO)</h4>
+              <div class="form-grid-2" style="gap: 12px;">
+                <div class="form-group" style="flex: 1;">
+                  <label class="config-label" style="font-size: 0.7rem; color: #888; margin-bottom: 4px; display: block;">IDIOMA (LOCALE)</label>
+                  <select v-model="shopConfig.locale" class="form-input">
+                    <option value="pt-BR">Português (Brasil)</option>
+                    <option value="pt-PT">Português (Portugal)</option>
+                    <option value="en-US">English (United States)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label class="config-label" style="font-size: 0.7rem; color: #888; margin-bottom: 4px; display: block;">MOEDA</label>
+                  <select v-model="shopConfig.currency" class="form-input">
+                    <option value="BRL">Real Brasileiro (BRL - R$)</option>
+                    <option value="USD">US Dollar (USD - $)</option>
+                    <option value="EUR">Euro (EUR - €)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label class="config-label" style="font-size: 0.7rem; color: #888; margin-bottom: 4px; display: block;">FUSO HORÁRIO (TIMEZONE)</label>
+                  <select v-model="shopConfig.timezone" class="form-input">
+                    <option value="America/Sao_Paulo">America/Sao_Paulo (BRT)</option>
+                    <option value="America/New_York">America/New_York (EST/EDT)</option>
+                    <option value="Europe/Lisbon">Europe/Lisbon (WET/WEST)</option>
+                    <option value="UTC">UTC</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 28px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.08);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                <h4 class="config-label" style="margin:0;">AUDITORIA DE AÇÕES RECENTES</h4>
+                <button type="button" @click="fetchAuditLogs" class="btn-page" style="font-size:0.75rem;"><i class="fas fa-sync-alt"></i> Atualizar</button>
+              </div>
+              <div v-if="!auditLogs.length" style="font-size:0.82rem; color:#777;">Nenhum registro de auditoria recente.</div>
+              <div v-else style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto;">
+                <div v-for="log in auditLogs" :key="log.id" style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; padding:8px 10px; background:rgba(255,255,255,0.02); border-radius:6px;">
+                  <span><strong>{{ log.action }}</strong> <small v-if="log.user" style="color:#888;">por {{ log.user.name }}</small></span>
+                  <span style="color:#777; font-size:0.74rem;">{{ new Date(log.created_at).toLocaleString(shopConfig.locale || 'pt-BR') }}</span>
+                </div>
+              </div>
+            </div>
         </div>
       </section>
 

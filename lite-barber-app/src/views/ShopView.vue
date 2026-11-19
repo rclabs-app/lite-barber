@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePublicShop } from '../composables/usePublicShop'
+import { t } from '../utils/i18n'
 
 const router = useRouter()
 const { shop, loading, slug, loadShop } = usePublicShop()
@@ -85,7 +86,7 @@ const mapsUrl = computed(() => {
                     <img v-else :src="'https://ui-avatars.com/api/?name=' + shop.name.split(' ').join('+') + '&background=0D0D0D&color=D4AF37&size=120'" alt="Logo" class="main-logo" style="border-radius: 10px;">
                 </div>
                 <div class="hero-text">
-                    <span class="eyebrow">DESDE 2024</span>
+                    <span class="eyebrow">{{ t(shop.locale, 'since') }}</span>
                     <h1>{{ shop.name }}</h1>
                     <p>{{ shop.description || 'Redefinindo o conceito de atendimento com um toque de modernidade e precisão.' }}</p>
                     <p v-if="shop.address" style="font-size: 0.82rem; color: #aaa; margin-top: 8px;">
@@ -108,29 +109,29 @@ const mapsUrl = computed(() => {
             <div class="hero-stats-luxury">
                 <div class="l-stat">
                     <span class="val">4.9</span>
-                    <span class="lab">Avaliação</span>
+                    <span class="lab">{{ t(shop.locale, 'rating') }}</span>
                 </div>
                 <div class="l-stat">
                     <span class="val">10y</span>
-                    <span class="lab">Experiência</span>
+                    <span class="lab">{{ t(shop.locale, 'experience') }}</span>
                 </div>
                 <div class="l-stat">
                     <span class="val">2k+</span>
-                    <span class="lab">Clientes</span>
+                    <span class="lab">{{ t(shop.locale, 'clients') }}</span>
                 </div>
             </div>
 
             <div class="home-actions-luxury">
                 <button @click="goBooking" class="btn-primary-luxury">
-                    <span>AGENDAR AGORA</span>
+                    <span>{{ t(shop.locale, 'bookNow') }}</span>
                     <i class="fas fa-chevron-right"></i>
                 </button>
                 <button @click="goQueue" class="btn-outline-luxury">
-                    <span>FILA DIGITAL</span>
+                    <span>{{ t(shop.locale, 'digitalQueue') }}</span>
                 </button>
                 <button @click="goAdmin" class="btn-outline-luxury" style="display:flex; justify-content:center; align-items:center; gap:10px;">
                     <i class="fas fa-fingerprint"></i>
-                    <span>LOGIN</span>
+                    <span>{{ t(shop.locale, 'login') }}</span>
                 </button>
             </div>
         </section>

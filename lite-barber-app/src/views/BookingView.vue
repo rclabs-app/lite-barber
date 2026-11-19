@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import axios from '../services/api'
 import { usePublicShop } from '../composables/usePublicShop'
 import { LuxurySwal, Toast } from '../utils/swal'
+import { formatCurrency, t } from '../utils/i18n'
 
 const router = useRouter()
 const { shop, slug, loadShop } = usePublicShop()
@@ -339,10 +340,10 @@ const selectedProfessional = computed(() =>
                 <div class="scroll-wrapper">
 
                     <div class="luxury-field-group">
-                        <h3 class="group-title">DADOS PESSOAIS</h3>
+                        <h3 class="group-title">{{ t(shop?.locale, 'personalData') }}</h3>
                         <div class="input-luxury-wrapper">
                             <i class="far fa-user"></i>
-                            <input v-model="name" type="text" required placeholder="Seu nome completo">
+                            <input v-model="name" type="text" required :placeholder="t(shop?.locale, 'fullNamePlaceholder')">
                         </div>
                         <div class="input-luxury-wrapper">
                             <i class="fab fa-whatsapp"></i>
@@ -351,7 +352,7 @@ const selectedProfessional = computed(() =>
                     </div>
 
                     <div class="luxury-field-group">
-                        <h3 class="group-title">ESPECIALISTA</h3>
+                        <h3 class="group-title">{{ t(shop?.locale, 'specialist') }}</h3>
                         <div class="luxury-service-grid" style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));">
                             <label v-for="b in professionals" :key="b.id" class="service-card">
                                 <input type="radio" :value="b.id" v-model="selectedProfessionalId">
@@ -363,7 +364,7 @@ const selectedProfessional = computed(() =>
                     </div>
 
                     <div class="luxury-field-group">
-                        <h3 class="group-title">SERVIÇOS EXCLUSIVOS</h3>
+                        <h3 class="group-title">{{ t(shop?.locale, 'exclusiveServices') }}</h3>
                         <div class="luxury-service-grid">
                             <label v-for="s in services" :key="s.id" class="service-card">
                                 <input type="radio" :value="s.id" v-model="selectedServiceId">
@@ -372,7 +373,7 @@ const selectedProfessional = computed(() =>
                                     <p v-if="s.description" class="service-desc">{{ s.description }}</p>
                                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 8px; font-size: 0.75rem; color: #888;">
                                         <span><i class="far fa-clock" style="margin-right: 4px;"></i>{{ s.duration_minutes }} MIN</span>
-                                        <span style="color: #D4AF37; font-weight: 600;">R$ {{ Math.floor(s.price) }}</span>
+                                        <span style="color: #D4AF37; font-weight: 600;">{{ formatCurrency(s.price, shop?.currency, shop?.locale) }}</span>
                                     </div>
                                 </div>
                             </label>
@@ -380,12 +381,12 @@ const selectedProfessional = computed(() =>
                     </div>
 
                     <div class="luxury-field-group">
-                        <h3 class="group-title">DISPONIBILIDADE</h3>
+                        <h3 class="group-title">{{ t(shop?.locale, 'availability') }}</h3>
                         
                         <div class="calendar-luxury-booking">
                             <div class="calendar-header-lux">
                                 <button @click="prevMonth" type="button" class="cal-nav-btn"><i class="fas fa-chevron-left"></i></button>
-                                <span class="cal-month-title">{{ currentCalendarMonth.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase() }}</span>
+                                <span class="cal-month-title">{{ currentCalendarMonth.toLocaleString(shop?.locale || 'pt-BR', { month: 'long', year: 'numeric' }).toUpperCase() }}</span>
                                 <button @click="nextMonth" type="button" class="cal-nav-btn"><i class="fas fa-chevron-right"></i></button>
                             </div>
                             <div class="calendar-grid-lux">
@@ -438,9 +439,9 @@ const selectedProfessional = computed(() =>
                     </div>
 
                     <div class="luxury-field-group">
-                        <h3 class="group-title">NOTAS ADICIONAIS</h3>
+                        <h3 class="group-title">{{ t(shop?.locale, 'additionalNotes') }}</h3>
                         <div class="input-luxury-wrapper" style="border: 1px solid #333; padding: 10px; border-radius: 4px;">
-                            <textarea v-model="notes" placeholder="Alguma preferência especial?" style="background: transparent; border: none; color: #fff; width: 100%; min-height: 80px; resize: none; font-family: inherit; font-size: 1rem; outline: none;"></textarea>
+                            <textarea v-model="notes" :placeholder="t(shop?.locale, 'notesPlaceholder')" style="background: transparent; border: none; color: #fff; width: 100%; min-height: 80px; resize: none; font-family: inherit; font-size: 1rem; outline: none;"></textarea>
                         </div>
                     </div>
 
@@ -448,9 +449,9 @@ const selectedProfessional = computed(() =>
 
                 <div class="luxury-sticky-footer">
                     <button type="submit" class="btn-confirm-luxury" :disabled="submitting">
-                        <span v-if="submitting">RESERVANDO...</span>
+                        <span v-if="submitting">{{ t(shop?.locale, 'bookingInProgress') }}</span>
                         <span v-else>
-                            RESERVAR HORÁRIO <i class="fas fa-arrow-right"></i>
+                            {{ t(shop?.locale, 'confirmBooking') }} <i class="fas fa-arrow-right"></i>
                         </span>
                     </button>
                 </div>
