@@ -30,7 +30,7 @@ class PublicWaitlistController extends Controller
 
         $position = Waitlist::where('shop_id', $shop->id)
             ->where('status', 'waiting')
-            ->where('created_at', '<=', $entry->created_at)
+            ->where('id', '<=', $entry->id)
             ->count();
 
         return response()->json([
@@ -48,6 +48,7 @@ class PublicWaitlistController extends Controller
         $waiting = Waitlist::where('shop_id', $shop->id)
             ->where('status', 'waiting')
             ->orderBy('created_at')
+            ->orderBy('id')
             ->get(['id', 'client_name', 'created_at']);
 
         $entries = $waiting->values()->map(fn ($entry, $index) => [

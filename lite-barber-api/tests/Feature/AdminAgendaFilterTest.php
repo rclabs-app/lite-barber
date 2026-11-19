@@ -89,5 +89,28 @@ class AdminAgendaFilterTest extends TestCase
         $this->getJson('/api/admin/appointments?week='.$weekDate->format('Y-m-d').'&per_page=100')
             ->assertOk()
             ->assertJsonCount(2, 'data');
+
+        $nextWeekDate = $weekDate->copy()->addWeek();
+
+        Appointment::create([
+            'shop_id' => $shop->id,
+            'professional_id' => $professionalA->id,
+            'service_id' => $service->id,
+            'client_name' => 'Cliente Próxima Semana',
+            'client_phone' => '11777777777',
+            'scheduled_at' => $nextWeekDate,
+            'ends_at' => $nextWeekDate->copy()->addMinutes(30),
+            'price_snapshot' => 50,
+            'status' => 'scheduled',
+        ]);
+
+        $this->getJson('/api/admin/appointments?week='.$nextWeekDate->format('Y-m-d').'&per_page=100')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonFragment(['client_name' => 'Cliente Próxima Semana']);
+
+        $this->getJson('/api/admin/appointments?per_page=100')
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
     }
 }

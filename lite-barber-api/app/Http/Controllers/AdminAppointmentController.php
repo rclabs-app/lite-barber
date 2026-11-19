@@ -67,7 +67,7 @@ class AdminAppointmentController extends Controller
         }
 
         $allowedTransitions = [
-            'scheduled' => ['confirmed', 'in_progress', 'cancelled', 'no_show'],
+            'scheduled' => ['confirmed', 'in_progress', 'completed', 'cancelled', 'no_show'],
             'confirmed' => ['in_progress', 'completed', 'cancelled', 'no_show'],
             'in_progress' => ['completed', 'cancelled', 'no_show'],
         ];

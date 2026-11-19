@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '../services/api'
 import { LuxurySwal, Toast } from '../utils/swal'
@@ -21,7 +21,19 @@ const editingServiceId = ref(null)
 const professionals = ref([])
 const newProfessional = ref({ name: '', phone: '', specialties: '' })
 const editingProfessionalId = ref(null)
-const shopConfig = ref({ opening_time: '08:00', closing_time: '19:00', working_days: [1,2,3,4,5], unavailable_dates: [] })
+const shopConfig = ref({
+  name: '',
+  opening_time: '08:00',
+  closing_time: '19:00',
+  slot_duration: 30,
+  lunch_start: '',
+  lunch_end: '',
+  working_days: [1, 2, 3, 4, 5],
+  unavailable_dates: [],
+  theme_color: '#D4AF37',
+  theme_mode: 'dark',
+  logo_url: '',
+})
 const shopName = ref('Meu Estabelecimento')
 const userName = ref('Admin')
 const currentCalendarMonth = ref(new Date())
@@ -44,7 +56,7 @@ const statusColor = { scheduled:'#3b82f6', confirmed:'#10b981', completed:'#D4AF
 const navItems = [
   { key: 'dashboard', icon: 'fas fa-home', label: 'Dashboard' },
   { key: 'agenda', icon: 'fas fa-calendar-alt', label: 'Agenda' },
-  { key: 'fila', icon: 'fas fa-hourglass-half', label: 'Lista de Espera', hidden: true },
+  { key: 'fila', icon: 'fas fa-hourglass-half', label: 'Lista de Espera' },
   { key: 'services', icon: 'fas fa-cut', label: 'Serviços' },
   { key: 'especialistas', icon: 'fas fa-user-tie', label: 'Especialistas' },
   { key: 'relatorios', icon: 'fas fa-chart-bar', label: 'Relatórios', locked: true },
@@ -199,13 +211,14 @@ const fetchDashboardMetrics = async () => {
   }
 }
 
-const fetchAgenda = async (page = 1) => {
-  isAgendaLoading.value = true
+const fetchAgenda = async (page = 1, { silent = false } = {}) => {
+  if (!silent) isAgendaLoading.value = true
+  saveAgendaFilters()
   try {
     const params = {
       page,
       per_page: appointmentsPagination.value.per_page,
-      date: agendaWeek.value ? undefined : agendaFilterDate.value,
+      date: agendaWeek.value ? undefined : (agendaFilterDate.value || undefined),
       professional_id: agendaProfessionalId.value || undefined,
       status: agendaStatus.value || undefined,
       week: agendaWeek.value || undefined,
@@ -214,7 +227,81 @@ const fetchAgenda = async (page = 1) => {
     const { data } = await axios.get('/api/admin/appointments', { params })
     if (data.data) { appointments.value = data.data; appointmentsPagination.value = { current_page: data.current_page, last_page: data.last_page, per_page: data.per_page, total: data.total } }
     else appointments.value = data
-  } catch(err) { console.error(err) } finally { calculateRevenue(); isAgendaLoading.value = false }
+  } catch(err) { console.error(err) } finally { calculateRevenue(); if (!silent) isAgendaLoading.value = false }
+}
+
+const AGENDA_FILTERS_STORAGE_KEY = 'lite_barber_agenda_filters'
+
+const saveAgendaFilters = () => {
+  try {
+    localStorage.setItem(AGENDA_FILTERS_STORAGE_KEY, JSON.stringify({
+      date: agendaFilterDate.value,
+      professional_id: agendaProfessionalId.value,
+      status: agendaStatus.value,
+      week: agendaWeek.value,
+      per_page: appointmentsPagination.value.per_page,
+    }))
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const loadAgendaFilters = () => {
+  try {
+    const raw = localStorage.getItem(AGENDA_FILTERS_STORAGE_KEY)
+    if (!raw) return
+    const saved = JSON.parse(raw)
+    if (typeof saved.date === 'string') agendaFilterDate.value = saved.date
+    if (saved.professional_id !== undefined) agendaProfessionalId.value = saved.professional_id
+    if (typeof saved.status === 'string') agendaStatus.value = saved.status
+    if (typeof saved.week === 'string') agendaWeek.value = saved.week
+    if (saved.per_page) appointmentsPagination.value.per_page = Number(saved.per_page)
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const hasActiveAgendaFilters = computed(() =>
+  Boolean(
+    agendaProfessionalId.value ||
+    agendaStatus.value ||
+    agendaWeek.value ||
+    agendaFilterDate.value !== today
+  )
+)
+
+const clearAgendaFilters = (showAll = false) => {
+  agendaFilterDate.value = showAll ? '' : today
+  agendaProfessionalId.value = ''
+  agendaStatus.value = ''
+  agendaWeek.value = ''
+  fetchAgenda(1)
+}
+
+const onAgendaDateChange = () => {
+  if (agendaFilterDate.value) {
+    agendaWeek.value = ''
+  }
+  fetchAgenda(1)
+}
+
+const onAgendaWeekChange = () => {
+  fetchAgenda(1)
+}
+
+const shiftAgendaWeek = (offsetWeeks) => {
+  const baseStr = agendaWeek.value || agendaFilterDate.value || today
+  const parts = baseStr.split('-').map(Number)
+  const baseDate = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date()
+  baseDate.setDate(baseDate.getDate() + offsetWeeks * 7)
+  agendaWeek.value = formatDate(baseDate)
+  fetchAgenda(1)
+}
+
+const goAgendaToday = () => {
+  agendaWeek.value = ''
+  agendaFilterDate.value = today
+  fetchAgenda(1)
 }
 
 const fetchWaitlist = async (page = 1) => {
@@ -231,15 +318,33 @@ const addToWaitlist = async () => {
 }
 
 const notifyWaitlistClient = async (id) => {
-  try { await axios.patch(`/api/admin/waitlist/${id}/notify`); fetchWaitlist(); fetchDashboardMetrics(); Toast.fire({ icon: 'success', title: 'Marcado como notificado' }) }
-  catch(err) { Toast.fire({ icon: 'error', title: 'Erro ao notificar' }) }
+  try {
+    await axios.patch(`/api/admin/waitlist/${id}/notify`)
+    if (Array.isArray(waitlistAlert.value)) {
+      waitlistAlert.value = waitlistAlert.value.filter(c => c.id !== id)
+      if (!waitlistAlert.value.length) waitlistAlert.value = null
+    }
+    fetchWaitlist(waitlistPagination.value.current_page)
+    fetchDashboardMetrics()
+    Toast.fire({ icon: 'success', title: 'Marcado como notificado' })
+  }
+  catch(err) { Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Erro ao notificar' }) }
 }
 
 const removeFromWaitlist = async (id) => {
   const r = await LuxurySwal.fire({ title: 'Remover da lista?', text: 'O cliente será removido.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sim, remover', cancelButtonText: 'Cancelar' })
   if (!r.isConfirmed) return
-  try { await axios.delete(`/api/admin/waitlist/${id}`); fetchWaitlist(); fetchDashboardMetrics(); Toast.fire({ icon: 'success', title: 'Removido' }) }
-  catch(err) { Toast.fire({ icon: 'error', title: 'Erro ao remover' }) }
+  try {
+    await axios.delete(`/api/admin/waitlist/${id}`)
+    if (Array.isArray(waitlistAlert.value)) {
+      waitlistAlert.value = waitlistAlert.value.filter(c => c.id !== id)
+      if (!waitlistAlert.value.length) waitlistAlert.value = null
+    }
+    fetchWaitlist(waitlistPagination.value.current_page)
+    fetchDashboardMetrics()
+    Toast.fire({ icon: 'success', title: 'Removido' })
+  }
+  catch(err) { Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Erro ao remover' }) }
 }
 
 const updateStatus = async (id, status) => {
@@ -247,16 +352,21 @@ const updateStatus = async (id, status) => {
     const r = await LuxurySwal.fire({ title: 'Cancelar agendamento?', text: 'Esta ação não pode ser desfeita.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sim, cancelar', cancelButtonText: 'Manter' })
     if (!r.isConfirmed) return
   }
+  if (status === 'no_show') {
+    const r = await LuxurySwal.fire({ title: 'Marcar não comparecimento?', text: 'O agendamento será registrado como No-Show.', icon: 'question', showCancelButton: true, confirmButtonText: 'Sim, confirmar', cancelButtonText: 'Voltar' })
+    if (!r.isConfirmed) return
+  }
   try {
     const { data } = await axios.patch(`/api/admin/appointments/${id}/status`, { status })
-    fetchAgenda(appointmentsPagination.value.current_page)
+    fetchAgenda(appointmentsPagination.value.current_page, { silent: true })
+    fetchWaitlist(waitlistPagination.value.current_page)
     fetchDashboardMetrics()
     Toast.fire({ icon: 'success', title: `Status: ${statusMap[status]}` })
     if (status === 'cancelled' && data.waiting_clients?.length > 0) {
       waitlistAlert.value = data.waiting_clients
-      LuxurySwal.fire({ title: `⚠️ ${data.waiting_clients.length} cliente(s) aguardam este horário!`, html: data.waiting_clients.map(c => `<strong>${c.client_name}</strong> — <a href="https://wa.me/55${c.client_phone.replace(/\D/g,'')}" target="_blank" style="color:#25D366">${c.client_phone}</a>`).join('<br>'), icon: 'info', confirmButtonText: 'Ver Lista de Espera', showCancelButton: true, cancelButtonText: 'Fechar' }).then(r => { if (r.isConfirmed) { activeTab.value = 'fila'; sidebarOpen.value = false } })
+      LuxurySwal.fire({ title: `⚠️ ${data.waiting_clients.length} cliente(s) aguardam este horário!`, html: data.waiting_clients.map(c => `<strong>#${c.position || 1} ${c.client_name}</strong> — <a href="https://wa.me/55${(c.client_phone || '').replace(/\D/g,'')}" target="_blank" style="color:#25D366">${c.client_phone || 'Sem telefone'}</a>`).join('<br>'), icon: 'info', confirmButtonText: 'Ver Lista de Espera', showCancelButton: true, cancelButtonText: 'Fechar' }).then(r => { if (r.isConfirmed) { activeTab.value = 'fila'; sidebarOpen.value = false } })
     }
-  } catch(err) { Toast.fire({ icon: 'error', title: 'Erro ao atualizar status' }) }
+  } catch(err) { Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Erro ao atualizar status' }) }
 }
 
 const fetchProfessionals = async () => { try { const { data } = await axios.get('/api/admin/professionals'); professionals.value = data } catch(err) { console.error(err) } }
@@ -312,25 +422,72 @@ const applyTheme = (theme) => {
     }
 }
 
+const normalizeTimeField = (value) => (typeof value === 'string' && value.length >= 5 ? value.slice(0, 5) : '')
+
+const normalizeShopConfig = (data = {}) => {
+  const workingDaysRaw = Array.isArray(data.working_days)
+    ? data.working_days
+    : JSON.parse(data.working_days || '[1,2,3,4,5]')
+  const unavailableDatesRaw = Array.isArray(data.unavailable_dates)
+    ? data.unavailable_dates
+    : JSON.parse(data.unavailable_dates || '[]')
+
+  return {
+    ...data,
+    name: data.name || '',
+    opening_time: normalizeTimeField(data.opening_time) || '08:00',
+    closing_time: normalizeTimeField(data.closing_time) || '19:00',
+    slot_duration: Number(data.slot_duration || 30),
+    lunch_start: normalizeTimeField(data.lunch_start),
+    lunch_end: normalizeTimeField(data.lunch_end),
+    working_days: workingDaysRaw.map(Number),
+    unavailable_dates: unavailableDatesRaw,
+    theme_color: data.theme_color || '#D4AF37',
+    theme_mode: data.theme_mode || 'dark',
+    logo_url: data.logo_url || '',
+  }
+}
+
+const clearLunchHours = () => {
+  shopConfig.value.lunch_start = ''
+  shopConfig.value.lunch_end = ''
+}
+
 const fetchShopConfig = async () => {
   try {
     const { data } = await axios.get('/api/admin/shop')
-    shopConfig.value = { ...data, working_days: Array.isArray(data.working_days) ? data.working_days : JSON.parse(data.working_days || '[]'), unavailable_dates: Array.isArray(data.unavailable_dates) ? data.unavailable_dates : JSON.parse(data.unavailable_dates || '[]'), theme_color: data.theme_color || '#D4AF37', theme_mode: data.theme_mode || 'dark' }
-    document.documentElement.style.setProperty('--gold', shopConfig.value.theme_color);
-    document.documentElement.style.setProperty('--accent', shopConfig.value.theme_color);
-    applyTheme(shopConfig.value.theme_mode);
+    shopConfig.value = normalizeShopConfig(data)
+    document.documentElement.style.setProperty('--gold', shopConfig.value.theme_color)
+    document.documentElement.style.setProperty('--accent', shopConfig.value.theme_color)
+    applyTheme(shopConfig.value.theme_mode)
     if (data.name) shopName.value = data.name
   } catch(err) { console.error(err) }
 }
 const updateShopConfig = async () => {
-  try { 
-      await axios.put('/api/admin/shop', shopConfig.value); 
-      document.documentElement.style.setProperty('--gold', shopConfig.value.theme_color);
-      document.documentElement.style.setProperty('--accent', shopConfig.value.theme_color);
-      applyTheme(shopConfig.value.theme_mode);
-      Toast.fire({ icon: 'success', title: 'Configurações atualizadas!' }) 
+  try {
+    const payload = {
+      name: shopConfig.value.name,
+      opening_time: normalizeTimeField(shopConfig.value.opening_time),
+      closing_time: normalizeTimeField(shopConfig.value.closing_time),
+      slot_duration: Number(shopConfig.value.slot_duration || 30),
+      lunch_start: normalizeTimeField(shopConfig.value.lunch_start) || null,
+      lunch_end: normalizeTimeField(shopConfig.value.lunch_end) || null,
+      working_days: (shopConfig.value.working_days || []).map(Number),
+      unavailable_dates: shopConfig.value.unavailable_dates || [],
+      theme_color: shopConfig.value.theme_color,
+      theme_mode: shopConfig.value.theme_mode,
+    }
+    const { data } = await axios.put('/api/admin/shop', payload)
+    shopConfig.value = normalizeShopConfig(data)
+    document.documentElement.style.setProperty('--gold', shopConfig.value.theme_color)
+    document.documentElement.style.setProperty('--accent', shopConfig.value.theme_color)
+    applyTheme(shopConfig.value.theme_mode)
+    if (data.name) shopName.value = data.name
+    Toast.fire({ icon: 'success', title: 'Configurações atualizadas!' })
   }
-  catch(err) { Toast.fire({ icon: 'error', title: 'Erro ao atualizar' }) }
+  catch(err) {
+    Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Erro ao atualizar configurações' })
+  }
 }
 
 const uploadLogo = async (event) => {
@@ -421,9 +578,12 @@ const greetingText = computed(() => {
   return 'Boa noite'
 })
 
+let agendaAutoRefreshTimer = null
+
 onMounted(() => {
   const u = localStorage.getItem('user_name')
   if (u) userName.value = u
+  loadAgendaFilters()
   fetchUserProfile()
   fetchAgenda()
   fetchWaitlist()
@@ -431,6 +591,18 @@ onMounted(() => {
   fetchProfessionals()
   fetchShopConfig()
   fetchDashboardMetrics()
+  agendaAutoRefreshTimer = setInterval(() => {
+    fetchAgenda(appointmentsPagination.value.current_page, { silent: true })
+    fetchWaitlist(waitlistPagination.value.current_page)
+    fetchDashboardMetrics()
+  }, 30000)
+})
+
+onUnmounted(() => {
+  if (agendaAutoRefreshTimer) {
+    clearInterval(agendaAutoRefreshTimer)
+    agendaAutoRefreshTimer = null
+  }
 })
 </script>
 
@@ -459,6 +631,7 @@ onMounted(() => {
       >
         <i :class="item.icon"></i>
         <span>{{ item.label }}</span>
+        <span v-if="item.key === 'fila' && waitlistCount > 0" style="margin-left:auto;background:var(--accent);color:#000;font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:999px;">{{ waitlistCount }}</span>
         <i v-if="item.locked" class="fas fa-lock sidebar-lock-icon"></i>
       </button>
     </nav>
@@ -589,17 +762,26 @@ onMounted(() => {
           <div>
             <h2 class="section-title">Compromissos Agendados</h2>
             <p class="section-subtitle">
-              <template v-if="agendaFilterDate === today">Agendamentos de Hoje</template>
-              <template v-else>Agendamentos de {{ new Date(agendaFilterDate + 'T00:00:00').toLocaleDateString('pt-BR') }}</template>
+              <template v-if="agendaWeek">Semana de {{ new Date(agendaWeek + 'T00:00:00').toLocaleDateString('pt-BR') }}</template>
+              <template v-else-if="agendaFilterDate === today">Agendamentos de Hoje</template>
+              <template v-else-if="agendaFilterDate">Agendamentos de {{ new Date(agendaFilterDate + 'T00:00:00').toLocaleDateString('pt-BR') }}</template>
+              <template v-else>Todos os períodos</template>
               · {{ appointmentsPagination.total }} no total
             </p>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
 
+            <!-- Navegação Rápida de Semana / Hoje -->
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button type="button" @click="shiftAgendaWeek(-1)" class="btn-page" title="Semana anterior">« Semana ant.</button>
+              <button type="button" @click="goAgendaToday" class="btn-page" title="Ir para hoje">Hoje</button>
+              <button type="button" @click="shiftAgendaWeek(1)" class="btn-page" title="Próxima semana">Próx. semana »</button>
+            </div>
+
             <!-- Filtro de Data -->
-            <div class="date-filter-btn">
+            <div class="date-filter-btn" title="Filtrar por dia">
               <i class="fas fa-calendar-alt" style="color: var(--accent);"></i>
-              <input type="date" v-model="agendaFilterDate" @change="fetchAgenda(1)" class="interval-date-input" style="margin-left: 8px;">
+              <input type="date" v-model="agendaFilterDate" @change="onAgendaDateChange" class="interval-date-input" style="margin-left: 8px;">
             </div>
 
             <!-- Filtro de Profissional -->
@@ -622,12 +804,16 @@ onMounted(() => {
             </select>
 
             <!-- Filtro de Semana -->
-            <input type="date" v-model="agendaWeek" @change="fetchAgenda(1)" class="interval-date-input date-filter-btn">
+            <input type="date" v-model="agendaWeek" @change="onAgendaWeekChange" class="interval-date-input date-filter-btn" title="Filtrar pela semana da data escolhida">
 
             <!-- Por página -->
             <select v-model="appointmentsPagination.per_page" @change="fetchAgenda(1)" class="per-page-select">
-              <option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="50">50</option><option value="100">100</option>
+              <option :value="10">10</option><option :value="20">20</option><option :value="30">30</option><option :value="50">50</option><option :value="100">100</option>
             </select>
+
+            <!-- Limpar Filtros e Atualizar -->
+            <button v-if="hasActiveAgendaFilters" type="button" @click="clearAgendaFilters(false)" class="btn-clear-filter">Limpar filtros</button>
+            <button type="button" @click="fetchAgenda(appointmentsPagination.current_page)" class="btn-page" title="Atualizar agenda"><i class="fas fa-sync-alt"></i></button>
           </div>
         </div>
 
@@ -650,8 +836,12 @@ onMounted(() => {
 
         <div v-else-if="appointments.length === 0" class="empty-state">
           <i class="fas fa-calendar-check" style="color: var(--accent); opacity: 0.4;"></i>
-          <p>Nenhum agendamento a partir de hoje.</p>
-          <button @click="selectedAgendaDate='';fetchAgenda(1)" class="btn-clear-filter" style="margin-top:12px;">Ver todos os registros</button>
+          <p v-if="hasActiveAgendaFilters">Nenhum agendamento encontrado para os filtros aplicados.</p>
+          <p v-else>Nenhum agendamento para a data selecionada.</p>
+          <div style="display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap;">
+            <button v-if="hasActiveAgendaFilters" type="button" @click="clearAgendaFilters(false)" class="btn-clear-filter">Restaurar filtro de hoje</button>
+            <button type="button" @click="clearAgendaFilters(true)" class="btn-clear-filter">Ver todos os registros</button>
+          </div>
         </div>
 
         <template v-else>
@@ -705,7 +895,7 @@ onMounted(() => {
               <!-- Coluna 5: Botão Atendido -->
               <div class="appt-col-btn">
                 <button 
-                  :disabled="!['scheduled','confirmed'].includes(app.status)" 
+                  :disabled="!['scheduled','confirmed','in_progress'].includes(app.status)" 
                   @click="updateStatus(app.id,'completed')" 
                   class="btn-action btn-complete"
                 >
@@ -713,7 +903,19 @@ onMounted(() => {
                 </button>
               </div>
 
-              <!-- Coluna 6: Botão Cancelar -->
+              <!-- Coluna 6: Botão No-Show -->
+              <div class="appt-col-btn">
+                <button 
+                  :disabled="['completed','cancelled','no_show'].includes(app.status)" 
+                  @click="updateStatus(app.id,'no_show')" 
+                  class="btn-action btn-cancel"
+                  title="Marcar não comparecimento"
+                >
+                  No-Show
+                </button>
+              </div>
+
+              <!-- Coluna 7: Botão Cancelar -->
               <div class="appt-col-btn">
                 <button 
                   :disabled="['completed','cancelled','no_show'].includes(app.status)" 
@@ -737,8 +939,25 @@ onMounted(() => {
       <!-- ===== LISTA DE ESPERA ===== -->
       <section v-if="activeTab === 'fila'">
         <div class="section-toolbar">
-          <h2 class="section-title">Lista de Espera por Horário</h2>
-          <p class="section-subtitle">Clientes que querem ser avisados se um horário específico abrir.</p>
+          <div>
+            <h2 class="section-title">Lista de Espera Integrada</h2>
+            <p class="section-subtitle">Clientes que aguardam liberação de horário ou encaixe · {{ waitlistCount }} aguardando</p>
+          </div>
+          <button type="button" @click="fetchWaitlist(waitlistPagination.current_page)" class="btn-page" title="Atualizar fila"><i class="fas fa-sync-alt"></i></button>
+        </div>
+
+        <div v-if="waitlistAlert?.length" class="form-card" style="border-color: var(--accent); margin-bottom: 18px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <strong style="color: var(--accent);"><i class="fas fa-bell"></i> Horário liberado recentemente — Clientes compatíveis:</strong>
+            <button type="button" @click="waitlistAlert = null" class="btn-link-red" style="font-size:0.75rem;">DISPENSAR</button>
+          </div>
+          <div v-for="client in waitlistAlert" :key="client.id" style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-top:1px solid rgba(255,255,255,0.06);">
+            <span><strong>#{{ client.position || 1 }} {{ client.client_name }}</strong> — {{ client.client_phone || 'Sem telefone' }}</span>
+            <div style="display:flex; gap:8px;">
+              <a v-if="client.client_phone" :href="whatsappLink(client.client_phone)" target="_blank" class="btn-action btn-whatsapp"><i class="fab fa-whatsapp"></i> Chamar</a>
+              <button type="button" @click="notifyWaitlistClient(client.id)" class="btn-action btn-confirm">Marcar Notificado</button>
+            </div>
+          </div>
         </div>
 
         <form @submit.prevent="addToWaitlist" class="form-card">
@@ -766,17 +985,25 @@ onMounted(() => {
 
         <div v-for="entry in waitlist" :key="entry.id" class="waitlist-card">
           <div class="waitlist-info">
-            <h4 class="waitlist-name"><i class="fas fa-user"></i> {{ entry.client_name }}</h4>
+            <h4 class="waitlist-name">
+              <span v-if="entry.position" style="color:var(--accent);margin-right:6px;">#{{ entry.position }}</span>
+              <i class="fas fa-user"></i> {{ entry.client_name }}
+            </h4>
             <p class="waitlist-slot">
               <i class="fas fa-calendar-day"></i>
-              {{ new Date(entry.desired_date + 'T00:00:00').toLocaleDateString('pt-BR') }} às {{ entry.desired_time?.slice(0,5) }}
+              <template v-if="entry.desired_date">
+                {{ new Date(entry.desired_date.slice(0, 10) + 'T00:00:00').toLocaleDateString('pt-BR') }}
+                <template v-if="entry.desired_time"> às {{ entry.desired_time.slice(0,5) }}</template>
+              </template>
+              <template v-else>Fila de encaixe imediato (Walk-in)</template>
               <span v-if="entry.professional"> · {{ entry.professional.name }}</span>
               <span v-if="entry.service"> · {{ entry.service.name }}</span>
             </p>
             <p class="waitlist-contact">
-              <a :href="`https://wa.me/55${entry.client_phone.replace(/\D/g,'')}`" target="_blank" class="whatsapp-link">
+              <a v-if="entry.client_phone" :href="`https://wa.me/55${entry.client_phone.replace(/\D/g,'')}`" target="_blank" class="whatsapp-link">
                 <i class="fab fa-whatsapp"></i> {{ entry.client_phone }}
               </a>
+              <span v-else>Sem telefone</span>
               &nbsp;—&nbsp;
               <span :class="entry.status==='notified' ? 'status-notified' : 'status-waiting'">
                 {{ entry.status === 'notified' ? '✅ Notificado' : '⏳ Aguardando' }}
@@ -891,18 +1118,34 @@ onMounted(() => {
               </div>
               <div class="form-group" style="flex: 1;">
                 <label class="config-label" style="font-size: 0.7rem; color: #888; margin-bottom: 4px; display: block;">LOGOMARCA</label>
-                <input type="file" @change="uploadLogo" accept="image/*" class="form-input" style="padding: 6px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <img v-if="shopConfig.logo_url" :src="shopConfig.logo_url" alt="Preview da logo" style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(212,175,55,0.35);">
+                  <input type="file" @change="uploadLogo" accept="image/*" class="form-input" style="padding: 6px; flex: 1;">
+                </div>
               </div>
             </div>
           </div>
-          <h4 class="config-label">JANELA DE ATENDIMENTO</h4>
-          <div class="time-row">
+          <h4 class="config-label">JANELA DE ATENDIMENTO E INTERVALO</h4>
+          <div class="time-row" style="flex-wrap: wrap; gap: 12px;">
             <div class="time-in-lux"><span>Início</span><input type="time" v-model="shopConfig.opening_time" class="form-input"></div>
             <div class="time-divider">ATÉ</div>
             <div class="time-in-lux"><span>Término</span><input type="time" v-model="shopConfig.closing_time" class="form-input"></div>
+            <div class="time-in-lux" style="min-width: 150px;">
+              <span>Intervalo de Slots</span>
+              <select v-model.number="shopConfig.slot_duration" class="form-input">
+                <option :value="15">15 minutos</option>
+                <option :value="20">20 minutos</option>
+                <option :value="30">30 minutos</option>
+                <option :value="45">45 minutos</option>
+                <option :value="60">60 minutos</option>
+              </select>
+            </div>
           </div>
-          <h4 class="config-label" style="margin-top:24px;">HORÁRIO DE ALMOÇO</h4>
-          <div class="time-row">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:24px;">
+            <h4 class="config-label" style="margin:0;">HORÁRIO DE ALMOÇO</h4>
+            <button v-if="shopConfig.lunch_start || shopConfig.lunch_end" type="button" @click="clearLunchHours" class="btn-link-red" style="font-size:0.75rem;">LIMPAR INTERVALO</button>
+          </div>
+          <div class="time-row" style="margin-top:8px;">
             <div class="time-in-lux"><span>Início</span><input type="time" v-model="shopConfig.lunch_start" class="form-input"></div>
             <div class="time-divider">ATÉ</div>
             <div class="time-in-lux"><span>Retorno</span><input type="time" v-model="shopConfig.lunch_end" class="form-input"></div>

@@ -95,4 +95,76 @@ class AppointmentFlowTest extends TestCase
         ])
             ->assertCreated();
     }
+
+    public function test_admin_can_complete_and_mark_no_show_on_appointments(): void
+    {
+        $shop = Shop::create([
+            'name' => 'Barbearia Status',
+            'slug' => 'barbearia-status',
+            'is_active' => true,
+        ]);
+
+        $admin = User::create([
+            'shop_id' => $shop->id,
+            'name' => 'Admin Status',
+            'email' => 'admin-status@teste.com',
+            'password' => bcrypt('senha123'),
+            'role' => 'owner',
+            'is_active' => true,
+        ]);
+
+        $professional = Professional::create([
+            'shop_id' => $shop->id,
+            'name' => 'Rafael',
+            'is_active' => true,
+        ]);
+
+        $service = Service::create([
+            'shop_id' => $shop->id,
+            'name' => 'Barba',
+            'price' => 40,
+            'duration_minutes' => 30,
+            'is_active' => true,
+        ]);
+
+        $slotA = now()->copy()->setTime(11, 0);
+        $appointmentA = Appointment::create([
+            'shop_id' => $shop->id,
+            'professional_id' => $professional->id,
+            'service_id' => $service->id,
+            'client_name' => 'Cliente Direto',
+            'client_phone' => '11999991111',
+            'scheduled_at' => $slotA,
+            'ends_at' => $slotA->copy()->addMinutes(30),
+            'price_snapshot' => 40,
+            'status' => 'scheduled',
+        ]);
+
+        $slotB = now()->copy()->setTime(15, 0);
+        $appointmentB = Appointment::create([
+            'shop_id' => $shop->id,
+            'professional_id' => $professional->id,
+            'service_id' => $service->id,
+            'client_name' => 'Cliente Falta',
+            'client_phone' => '11999992222',
+            'scheduled_at' => $slotB,
+            'ends_at' => $slotB->copy()->addMinutes(30),
+            'price_snapshot' => 40,
+            'status' => 'scheduled',
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->patchJson('/api/admin/appointments/'.$appointmentA->id.'/status', [
+            'status' => 'completed',
+        ])
+            ->assertOk()
+            ->assertJsonPath('appointment.status', 'completed');
+
+        $this->patchJson('/api/admin/appointments/'.$appointmentB->id.'/status', [
+            'status' => 'no_show',
+        ])
+            ->assertOk()
+            ->assertJsonPath('appointment.status', 'no_show');
+    }
 }

@@ -16,13 +16,31 @@ class AdminWaitlistController extends Controller
     {
         $shopId = $request->user()->shop_id;
 
+        $waitingIds = Waitlist::where('shop_id', $shopId)
+            ->where('status', 'waiting')
+            ->orderBy('desired_date', 'asc')
+            ->orderBy('desired_time', 'asc')
+            ->orderBy('created_at', 'asc')
+            ->orderBy('id', 'asc')
+            ->pluck('id')
+            ->values();
+
+        $positionMap = $waitingIds->flip()->map(fn ($index) => $index + 1);
+
         $list = Waitlist::where('shop_id', $shopId)
             ->with(['professional', 'service'])
             ->whereIn('status', ['waiting', 'notified'])
             ->orderBy('desired_date', 'asc')
             ->orderBy('desired_time', 'asc')
             ->orderBy('created_at', 'asc')
+            ->orderBy('id', 'asc')
             ->paginate((int) $request->query('per_page', 20));
+
+        $list->getCollection()->transform(function (Waitlist $entry) use ($positionMap) {
+            $entry->setAttribute('position', $positionMap->get($entry->id));
+
+            return $entry;
+        });
 
         return response()->json($list);
     }
@@ -125,10 +143,22 @@ class AdminWaitlistController extends Controller
      */
     public static function checkForWaitingClients(int $shopId, string $date, string $time, ?int $professionalId = null): array
     {
+        $shortTime = substr($time, 0, 5);
+
         $query = Waitlist::where('shop_id', $shopId)
             ->where('status', 'waiting')
-            ->whereDate('desired_date', $date)
-            ->where('desired_time', $time);
+            ->where(function ($q) use ($date, $shortTime) {
+                $q->where(function ($slotQuery) use ($date, $shortTime) {
+                    $slotQuery->whereDate('desired_date', $date)
+                        ->where(function ($timeQuery) use ($shortTime) {
+                            $timeQuery->whereIn('desired_time', [$shortTime, $shortTime.':00'])
+                                ->orWhereNull('desired_time');
+                        });
+                })->orWhere(function ($walkInQuery) {
+                    $walkInQuery->whereNull('desired_date')
+                        ->whereNull('desired_time');
+                });
+            });
 
         if ($professionalId) {
             $query->where(function ($q) use ($professionalId) {
@@ -136,6 +166,16 @@ class AdminWaitlistController extends Controller
             });
         }
 
-        return $query->with(['professional', 'service'])->orderBy('created_at', 'asc')->get()->toArray();
+        return $query->with(['professional', 'service'])
+            ->orderBy('created_at', 'asc')
+            ->orderBy('id', 'asc')
+            ->get()
+            ->values()
+            ->map(function (Waitlist $entry, int $index) {
+                $entry->setAttribute('position', $index + 1);
+
+                return $entry;
+            })
+            ->toArray();
     }
 }
