@@ -1,0 +1,49 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: lite-barber-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-lite_barber}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: lite-barber-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  api:
+    image: php:8.3-cli
+    container_name: lite-barber-api
+    working_dir: /var/www/html
+    volumes:
+      - ./lite-barber-api:/var/www/html
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  frontend:
+    image: node:20-alpine
+    container_name: lite-barber-app
+    working_dir: /app
+    volumes:
+      - ./lite-barber-app:/app
+    environment:
+      VITE_API_PROXY_TARGET: http://api:8000
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  db_data:
