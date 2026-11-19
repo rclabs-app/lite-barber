@@ -126,16 +126,16 @@ class PublicAppointmentController extends Controller
             return 'A barbearia não atende nesta data.';
         }
 
-        $opening = Carbon::createFromFormat('Y-m-d H:i:s', $date.' '.substr((string) $shop->opening_time, 0, 8));
-        $closing = Carbon::createFromFormat('Y-m-d H:i:s', $date.' '.substr((string) $shop->closing_time, 0, 8));
+        $opening = $this->parseShopTime($date, (string) $shop->opening_time);
+        $closing = $this->parseShopTime($date, (string) $shop->closing_time);
 
         if ($scheduledAt->lt($opening) || $endsAt->gt($closing)) {
             return 'O horário solicitado está fora do horário de funcionamento.';
         }
 
         if ($shop->lunch_start && $shop->lunch_end) {
-            $lunchStart = Carbon::createFromFormat('Y-m-d H:i:s', $date.' '.substr((string) $shop->lunch_start, 0, 8));
-            $lunchEnd = Carbon::createFromFormat('Y-m-d H:i:s', $date.' '.substr((string) $shop->lunch_end, 0, 8));
+            $lunchStart = $this->parseShopTime($date, (string) $shop->lunch_start);
+            $lunchEnd = $this->parseShopTime($date, (string) $shop->lunch_end);
 
             if ($scheduledAt->lt($lunchEnd) && $endsAt->gt($lunchStart)) {
                 return 'O horário solicitado coincide com o intervalo de almoço.';
@@ -143,5 +143,13 @@ class PublicAppointmentController extends Controller
         }
 
         return null;
+    }
+
+    private function parseShopTime(string $date, string $time): Carbon
+    {
+        $trimmed = trim($time);
+        $normalized = strlen($trimmed) === 5 ? $trimmed.':00' : substr($trimmed, 0, 8);
+
+        return Carbon::createFromFormat('Y-m-d H:i:s', $date.' '.$normalized);
     }
 }

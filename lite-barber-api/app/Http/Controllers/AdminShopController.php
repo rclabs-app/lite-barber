@@ -9,17 +9,31 @@ class AdminShopController extends Controller
 {
     public function show(Request $request)
     {
-        return Shop::findOrFail($request->get('shop_id'));
+        return Shop::findOrFail($request->user()?->shop_id ?? $request->get('shop_id'));
     }
 
     public function update(Request $request)
     {
-        $shop = Shop::findOrFail($request->get('shop_id'));
+        $shop = Shop::findOrFail($request->user()?->shop_id ?? $request->get('shop_id'));
+
+        foreach (['opening_time', 'closing_time', 'lunch_start', 'lunch_end'] as $timeField) {
+            if (! $request->exists($timeField)) {
+                continue;
+            }
+
+            $value = $request->input($timeField);
+            if ($value === '' || $value === null) {
+                $request->merge([$timeField => null]);
+            } elseif (is_string($value) && preg_match('/^\d{2}:\d{2}:\d{2}$/', $value)) {
+                $request->merge([$timeField => substr($value, 0, 5)]);
+            }
+        }
 
         $request->validate([
             'name' => 'sometimes|string|max:100',
-            'opening_time' => 'sometimes|date_format:H:i',
-            'closing_time' => 'sometimes|date_format:H:i',
+            'opening_time' => 'sometimes|required|date_format:H:i',
+            'closing_time' => 'sometimes|required|date_format:H:i',
+            'slot_duration' => 'sometimes|integer|min:10|max:180',
             'lunch_start' => 'nullable|date_format:H:i',
             'lunch_end' => 'nullable|date_format:H:i',
             'working_days' => 'sometimes|array',
@@ -31,8 +45,10 @@ class AdminShopController extends Controller
             'theme_mode' => 'sometimes|string|in:dark,light-nude,light-wine',
         ]);
 
-        $opening = $request->opening_time ?? $shop->opening_time;
-        $closing = $request->closing_time ?? $shop->closing_time;
+        $openingRaw = $request->opening_time ?? $shop->opening_time;
+        $closingRaw = $request->closing_time ?? $shop->closing_time;
+        $opening = $openingRaw ? substr((string) $openingRaw, 0, 5) : null;
+        $closing = $closingRaw ? substr((string) $closingRaw, 0, 5) : null;
 
         if ($opening && $closing && $closing <= $opening) {
             return response()->json([
@@ -41,8 +57,17 @@ class AdminShopController extends Controller
             ], 422);
         }
 
-        $lunchStart = $request->lunch_start ?? $shop->lunch_start;
-        $lunchEnd = $request->lunch_end ?? $shop->lunch_end;
+        $lunchStartRaw = $request->exists('lunch_start') ? $request->lunch_start : $shop->lunch_start;
+        $lunchEndRaw = $request->exists('lunch_end') ? $request->lunch_end : $shop->lunch_end;
+        $lunchStart = $lunchStartRaw ? substr((string) $lunchStartRaw, 0, 5) : null;
+        $lunchEnd = $lunchEndRaw ? substr((string) $lunchEndRaw, 0, 5) : null;
+
+        if (($lunchStart && ! $lunchEnd) || (! $lunchStart && $lunchEnd)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Informe o início e o término do horário de almoço.',
+            ], 422);
+        }
 
         if ($lunchStart && $lunchEnd && $lunchEnd <= $lunchStart) {
             return response()->json([
@@ -51,8 +76,25 @@ class AdminShopController extends Controller
             ], 422);
         }
 
+        if ($lunchStart && $lunchEnd && $opening && $closing && ($lunchStart < $opening || $lunchEnd > $closing)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'O intervalo de almoço deve estar dentro do horário de funcionamento.',
+            ], 422);
+        }
+
         $shop->update($request->only([
-            'name', 'opening_time', 'closing_time', 'lunch_start', 'lunch_end', 'working_days', 'unavailable_dates', 'is_active', 'theme_color', 'theme_mode',
+            'name',
+            'opening_time',
+            'closing_time',
+            'slot_duration',
+            'lunch_start',
+            'lunch_end',
+            'working_days',
+            'unavailable_dates',
+            'is_active',
+            'theme_color',
+            'theme_mode',
         ]));
 
         return response()->json($shop);
@@ -60,7 +102,7 @@ class AdminShopController extends Controller
 
     public function uploadLogo(Request $request)
     {
-        $shop = Shop::findOrFail($request->get('shop_id'));
+        $shop = Shop::findOrFail($request->user()?->shop_id ?? $request->get('shop_id'));
 
         $request->validate([
             'logo' => 'required|image|max:2048', // max 2MB
