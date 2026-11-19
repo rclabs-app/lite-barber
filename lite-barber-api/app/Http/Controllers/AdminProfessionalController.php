@@ -3,13 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Professional;
+use App\Services\AuditLogService;
 use App\Services\ShopService;
 use Illuminate\Http\Request;
 
 class AdminProfessionalController extends Controller
 {
     public function __construct(
-        private readonly ShopService $shopService
+        private readonly ShopService $shopService,
+        private readonly AuditLogService $auditLogService
     ) {}
 
     public function index(Request $request)
@@ -40,6 +42,15 @@ class AdminProfessionalController extends Controller
             'is_active' => $validated['is_active'] ?? true,
         ]);
 
+        $this->auditLogService->record(
+            $shopId,
+            $request->user()?->id,
+            'professional.created',
+            'professional',
+            (int) $professional->id,
+            ['name' => $professional->name]
+        );
+
         return response()->json([
             'success' => true,
             'professional' => $professional,
@@ -67,7 +78,17 @@ class AdminProfessionalController extends Controller
     {
         $shopId = (int) ($request->user()?->shop_id ?? $request->get('shop_id'));
         $professional = Professional::where('shop_id', $shopId)->findOrFail($id);
+        $name = $professional->name;
         $professional->delete();
+
+        $this->auditLogService->record(
+            $shopId,
+            $request->user()?->id,
+            'professional.deleted',
+            'professional',
+            (int) $id,
+            ['name' => $name]
+        );
 
         return response()->json(null, 204);
     }

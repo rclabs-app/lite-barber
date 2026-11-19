@@ -10,6 +10,10 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ShopService
 {
+    public function __construct(
+        private readonly AuditLogService $auditLogService
+    ) {}
+
     public function findActiveBySlug(string $slug): Shop
     {
         return Shop::where('slug', $slug)
@@ -60,6 +64,38 @@ class ShopService
         }
     }
 
+    public function updatePlan(Shop $shop, string $nextPlan, ?int $userId = null): Shop
+    {
+        $targetIsPro = in_array($nextPlan, ['pro', 'premium'], true);
+
+        if (! $targetIsPro) {
+            $profCount = Professional::where('shop_id', $shop->id)->count();
+            $servCount = Service::where('shop_id', $shop->id)->count();
+
+            if ($profCount > 2 || $servCount > 5) {
+                throw new HttpException(
+                    422,
+                    'Reduza a quantidade de profissionais (máx. 2) e serviços (máx. 5) antes de mudar para o plano Lite.'
+                );
+            }
+        }
+
+        $previousPlan = $shop->plan;
+        $shop->plan = $nextPlan;
+        $shop->save();
+
+        $this->auditLogService->record(
+            (int) $shop->id,
+            $userId,
+            'shop.plan_updated',
+            'shop',
+            (int) $shop->id,
+            ['from' => $previousPlan, 'to' => $nextPlan]
+        );
+
+        return $shop;
+    }
+
     public function normalizeTimeInputs(array $input): array
     {
         foreach (['opening_time', 'closing_time', 'lunch_start', 'lunch_end'] as $timeField) {
@@ -78,7 +114,7 @@ class ShopService
         return $input;
     }
 
-    public function updateConfiguration(Shop $shop, array $data): Shop
+    public function updateConfiguration(Shop $shop, array $data, ?int $userId = null): Shop
     {
         $openingRaw = $data['opening_time'] ?? $shop->opening_time;
         $closingRaw = $data['closing_time'] ?? $shop->closing_time;
@@ -124,18 +160,40 @@ class ShopService
             'is_active',
             'theme_color',
             'theme_mode',
+            'currency',
+            'locale',
+            'timezone',
         ];
 
-        $shop->update(array_intersect_key($data, array_flip($allowed)));
+        $changes = array_intersect_key($data, array_flip($allowed));
+        $shop->update($changes);
+
+        $this->auditLogService->record(
+            (int) $shop->id,
+            $userId,
+            'shop.config_updated',
+            'shop',
+            (int) $shop->id,
+            ['fields' => array_keys($changes)]
+        );
 
         return $shop;
     }
 
-    public function uploadLogo(Shop $shop, UploadedFile $file): Shop
+    public function uploadLogo(Shop $shop, UploadedFile $file, ?int $userId = null): Shop
     {
         $path = $file->store('logos', 'public');
         $shop->logo_url = '/storage/'.$path;
         $shop->save();
+
+        $this->auditLogService->record(
+            (int) $shop->id,
+            $userId,
+            'shop.logo_updated',
+            'shop',
+            (int) $shop->id,
+            ['logo_url' => $shop->logo_url]
+        );
 
         return $shop;
     }

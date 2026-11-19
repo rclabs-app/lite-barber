@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AuditLogService;
 use App\Services\ShopService;
 use Illuminate\Http\Request;
 
 class AdminShopController extends Controller
 {
     public function __construct(
-        private readonly ShopService $shopService
+        private readonly ShopService $shopService,
+        private readonly AuditLogService $auditLogService
     ) {}
 
     public function show(Request $request)
@@ -45,9 +47,39 @@ class AdminShopController extends Controller
             'is_active' => 'sometimes|boolean',
             'theme_color' => 'sometimes|string|max:20|regex:/^#[0-9A-Fa-f]{6}$/',
             'theme_mode' => 'sometimes|string|in:dark,light-nude,light-wine',
+            'currency' => 'sometimes|string|in:BRL,USD,EUR',
+            'locale' => 'sometimes|string|in:pt-BR,en-US,pt-PT',
+            'timezone' => 'sometimes|string|max:64',
         ]);
 
-        return response()->json($this->shopService->updateConfiguration($shop, $validated));
+        return response()->json($this->shopService->updateConfiguration($shop, $validated, $request->user()?->id));
+    }
+
+    public function updatePlan(Request $request)
+    {
+        $shopId = (int) ($request->user()?->shop_id ?? $request->get('shop_id'));
+        $shop = $this->shopService->findForTenant($shopId);
+
+        $validated = $request->validate([
+            'plan' => 'required|string|in:free,starter,pro,premium',
+        ]);
+
+        $updated = $this->shopService->updatePlan($shop, $validated['plan'], $request->user()?->id);
+
+        return response()->json([
+            'success' => true,
+            'shop' => $updated,
+        ]);
+    }
+
+    public function auditLogs(Request $request)
+    {
+        $shopId = (int) ($request->user()?->shop_id ?? $request->get('shop_id'));
+
+        return response()->json([
+            'success' => true,
+            'logs' => $this->auditLogService->listForShop($shopId, (int) $request->query('limit', 30)),
+        ]);
     }
 
     public function uploadLogo(Request $request)
@@ -59,6 +91,6 @@ class AdminShopController extends Controller
             'logo' => 'required|image|max:2048',
         ]);
 
-        return response()->json($this->shopService->uploadLogo($shop, $request->file('logo')));
+        return response()->json($this->shopService->uploadLogo($shop, $request->file('logo'), $request->user()?->id));
     }
 }

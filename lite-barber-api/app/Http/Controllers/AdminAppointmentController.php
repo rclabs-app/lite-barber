@@ -33,7 +33,8 @@ class AdminAppointmentController extends Controller
             (int) $request->user()->shop_id,
             (int) $id,
             $validated['status'],
-            $validated['cancel_reason'] ?? null
+            $validated['cancel_reason'] ?? null,
+            $request->user()?->id
         );
 
         return response()->json([

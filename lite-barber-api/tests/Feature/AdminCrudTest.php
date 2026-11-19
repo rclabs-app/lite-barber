@@ -261,4 +261,64 @@ class AdminCrudTest extends TestCase
             ->assertJsonPath('whatsapp_phone', '11999998888')
             ->assertJsonPath('instagram_url', '@barbearialite');
     }
+
+    public function test_owner_can_upgrade_plan_configure_i18n_and_view_audit_logs(): void
+    {
+        $shop = Shop::create([
+            'name' => 'Barbearia Global',
+            'slug' => 'barbearia-global',
+            'plan' => 'free',
+            'is_active' => true,
+        ]);
+
+        $admin = User::create([
+            'shop_id' => $shop->id,
+            'name' => 'Admin Global',
+            'email' => 'admin-global@teste.com',
+            'password' => bcrypt('senha123'),
+            'role' => 'owner',
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->patchJson('/api/admin/shop/plan', [
+            'plan' => 'pro',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('shop.plan', 'pro');
+
+        $this->putJson('/api/admin/shop', [
+            'currency' => 'EUR',
+            'locale' => 'pt-PT',
+            'timezone' => 'Europe/Lisbon',
+        ])
+            ->assertOk()
+            ->assertJsonPath('currency', 'EUR')
+            ->assertJsonPath('locale', 'pt-PT')
+            ->assertJsonPath('timezone', 'Europe/Lisbon');
+
+        for ($i = 1; $i <= 3; $i++) {
+            $this->postJson('/api/admin/professionals', [
+                'name' => "Profissional {$i}",
+            ])->assertCreated();
+        }
+
+        $this->patchJson('/api/admin/shop/plan', [
+            'plan' => 'free',
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath(
+                'message',
+                'Reduza a quantidade de profissionais (máx. 2) e serviços (máx. 5) antes de mudar para o plano Lite.'
+            );
+
+        $this->getJson('/api/admin/audit-logs')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonFragment(['action' => 'shop.plan_updated'])
+            ->assertJsonFragment(['action' => 'shop.config_updated'])
+            ->assertJsonFragment(['action' => 'professional.created']);
+    }
 }

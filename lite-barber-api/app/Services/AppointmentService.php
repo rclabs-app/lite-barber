@@ -16,7 +16,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 class AppointmentService
 {
     public function __construct(
-        private readonly WaitlistService $waitlistService
+        private readonly WaitlistService $waitlistService,
+        private readonly AuditLogService $auditLogService
     ) {}
 
     public function listForAdmin(int $shopId, array $filters, int $perPage = 10): LengthAwarePaginator
@@ -106,7 +107,7 @@ class AppointmentService
             ]);
     }
 
-    public function updateStatus(int $shopId, int $appointmentId, string $nextStatus, ?string $cancelReason = null): array
+    public function updateStatus(int $shopId, int $appointmentId, string $nextStatus, ?string $cancelReason = null, ?int $userId = null): array
     {
         $appointment = Appointment::where('shop_id', $shopId)->findOrFail($appointmentId);
         $current = $appointment->status;
@@ -134,6 +135,15 @@ class AppointmentService
         }
 
         $appointment->save();
+
+        $this->auditLogService->record(
+            $shopId,
+            $userId,
+            'appointment.status_updated',
+            'appointment',
+            (int) $appointment->id,
+            ['from' => $current, 'to' => $nextStatus, 'client_name' => $appointment->client_name]
+        );
 
         $waitingClients = [];
         if ($nextStatus === 'cancelled') {
@@ -173,6 +183,15 @@ class AppointmentService
         $appointment->cancelled_by = 'client';
         $appointment->cancel_reason = $cancelReason;
         $appointment->save();
+
+        $this->auditLogService->record(
+            (int) $appointment->shop_id,
+            null,
+            'appointment.cancelled_by_client',
+            'appointment',
+            (int) $appointment->id,
+            ['client_name' => $appointment->client_name, 'cancel_reason' => $cancelReason]
+        );
 
         $date = date('Y-m-d', strtotime((string) $appointment->scheduled_at));
         $time = date('H:i', strtotime((string) $appointment->scheduled_at));

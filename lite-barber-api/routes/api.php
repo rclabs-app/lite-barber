@@ -60,7 +60,9 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     // Admin Shop Config
     Route::get('/admin/shop', [AdminShopController::class, 'show']);
     Route::put('/admin/shop', [AdminShopController::class, 'update']);
+    Route::patch('/admin/shop/plan', [AdminShopController::class, 'updatePlan']);
     Route::post('/admin/shop/logo', [AdminShopController::class, 'uploadLogo']);
+    Route::get('/admin/audit-logs', [AdminShopController::class, 'auditLogs']);
 
     // Admin Professionals CRUD
     Route::get('/admin/professionals', [AdminProfessionalController::class, 'index']);

@@ -3,13 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Service;
+use App\Services\AuditLogService;
 use App\Services\ShopService;
 use Illuminate\Http\Request;
 
 class AdminServiceController extends Controller
 {
     public function __construct(
-        private readonly ShopService $shopService
+        private readonly ShopService $shopService,
+        private readonly AuditLogService $auditLogService
     ) {}
 
     public function index(Request $request)
@@ -44,6 +46,15 @@ class AdminServiceController extends Controller
             'is_active' => $validated['is_active'] ?? true,
         ]);
 
+        $this->auditLogService->record(
+            $shopId,
+            $request->user()?->id,
+            'service.created',
+            'service',
+            (int) $service->id,
+            ['name' => $service->name, 'price' => $service->price]
+        );
+
         return response()->json([
             'success' => true,
             'service' => $service,
@@ -73,7 +84,17 @@ class AdminServiceController extends Controller
     {
         $shopId = (int) ($request->user()?->shop_id ?? $request->get('shop_id'));
         $service = Service::where('shop_id', $shopId)->findOrFail($id);
+        $name = $service->name;
         $service->delete();
+
+        $this->auditLogService->record(
+            $shopId,
+            $request->user()?->id,
+            'service.deleted',
+            'service',
+            (int) $id,
+            ['name' => $name]
+        );
 
         return response()->json(null, 204);
     }
